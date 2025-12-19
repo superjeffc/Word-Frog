@@ -179,11 +179,7 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    try {
-      await Share.share({ message: getStatsString() });
-    } catch (error) {
-      copyToClipboard();
-    }
+    await Share.share({ message: getStatsString() });
   };
 
   const handleSubmit = () => {
