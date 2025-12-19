@@ -458,13 +458,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -35, // Positioned right above the letter boxes
     width: 35,
+    paddingLeft: 6,
     height: 35,
     zIndex: 10,
     alignItems: 'center',
   },
   frogImage: {
-    width: 30,
-    height: 30,
+    width: 35,
+    height: 35,
     resizeMode: 'contain',
   },
   wordContainer: {
