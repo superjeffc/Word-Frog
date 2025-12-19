@@ -39,6 +39,9 @@ const { width } = Dimensions.get('window');
 const TILE_SIZE = 43; // 35 (width) + 8 (margin)
 
 export default function App() {
+  const TARGET_WORD = getWordOfTheDay();
+  const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
+
   const [revealedPrefix, setRevealedPrefix] = useState(TARGET_WORD[0]);
   const [userInput, setUserInput] = useState('');
   const [usedWords, setUsedWords] = useState([]);
@@ -49,9 +52,6 @@ export default function App() {
   const [showRules, setShowRules] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
-
-  const TARGET_WORD = getWordOfTheDay();
-  const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
 
   useEffect(() => {
     let interval;
