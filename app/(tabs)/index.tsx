@@ -35,7 +35,7 @@ const getWordOfTheDay = () => {
 };
 
 const TARGET_WORD = getWordOfTheDay();
-const DICTIONARY_SET = new Set(DICTIONARY);
+const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
 
 // Measure the screen to help with positioning
 const { width } = Dimensions.get('window');
