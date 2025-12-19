@@ -399,11 +399,23 @@ export default function App() {
 // ... styles remain the same
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f8e9' },
-  scrollContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  header: { marginBottom: 60, alignItems: 'center' },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    // CHANGE: 'flex-start' pulls content to the top
+    justifyContent: 'flex-start',
+    // ADD: Specific padding to control the distance from the top
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20
+  },
+  header: {
+    // REDUCE: Lower the margin if it's currently high (e.g., from 60 to 20)
+    marginBottom: 60,
+    alignItems: 'center'
+  },
   title: { fontSize: 42, fontWeight: '900', color: '#2e7d32', letterSpacing: -1 },
   stats: { fontSize: 18, color: '#558b2f', fontWeight: '600' },
-  revealedBox: { backgroundColor: '#4caf50', borderColor: '#1b5e20' },
+  revealedBox: { backgroundColor: '#4caf50', borderColor: '#1b5e20', marginBottom: 30 },
   letterText: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
   inputArea: { width: '100%', alignItems: 'center' },
   messageText: { marginBottom: 15, fontSize: 17, fontWeight: '600', color: '#444', textAlign: 'center', minHeight: 25 },
