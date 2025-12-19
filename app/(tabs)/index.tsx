@@ -34,9 +34,6 @@ const getWordOfTheDay = () => {
   return TARGET_WORDS[index].toUpperCase();
 };
 
-const TARGET_WORD = getWordOfTheDay();
-const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
-
 // Measure the screen to help with positioning
 const { width } = Dimensions.get('window');
 const TILE_SIZE = 43; // 35 (width) + 8 (margin)
@@ -52,6 +49,9 @@ export default function App() {
   const [showRules, setShowRules] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const TARGET_WORD = getWordOfTheDay();
+  const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
 
   useEffect(() => {
     let interval;
