@@ -29,7 +29,7 @@ export default function AboutScreen() {
       {/* Header Section */}
       <View style={styles.headerSection}>
         <Text style={styles.title}>Word Frog</Text>
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <Text style={styles.version}>Version 1.0.1</Text>
       </View>
 
       {/* Developer Info */}
