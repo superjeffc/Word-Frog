@@ -2,9 +2,9 @@ import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Animated,
-  Dimensions,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -14,7 +14,8 @@ import {
   StyleSheet, Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  useWindowDimensions
 } from 'react-native';
 
 import { DICTIONARY, TARGET_WORDS } from '../../constants/words';
@@ -34,14 +35,13 @@ const getWordOfTheDay = () => {
   return TARGET_WORDS[index].toUpperCase();
 };
 
-// Measure the screen to help with positioning
-const { width } = Dimensions.get('window');
-const TILE_SIZE = 43; // 35 (width) + 8 (margin)
-const TARGET_WORD = getWordOfTheDay();
-
 export default function App() {
+  // Measure the screen to help with positioning
+  const { width } = useWindowDimensions(); // Dynamic width that updates on resize
+  const TILE_SIZE = 43; // 35 (width) + 8 (margin)
+  const TARGET_WORD = getWordOfTheDay();
   const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
-
+  const [appIsReady, setAppIsReady] = useState(false);
   const [revealedPrefix, setRevealedPrefix] = useState(TARGET_WORD[0]);
   const [userInput, setUserInput] = useState('');
   const [usedWords, setUsedWords] = useState([]);
@@ -52,6 +52,18 @@ export default function App() {
   const [showRules, setShowRules] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        // Simulating a tiny delay for the dictionary setup
+        setAppIsReady(true);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    prepare();
+  }, []);
 
   useEffect(() => {
     let interval;
@@ -233,6 +245,15 @@ export default function App() {
     }
   };
 
+  if (!appIsReady) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2e7d32" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -254,7 +275,7 @@ export default function App() {
           <Text style={styles.stats}>Turn: {turnCount + 1} | {getTimeElapsed()}</Text>
         </View>
 
-        <View style={styles.gameArea}>
+        <View style={[styles.gameArea, { paddingLeft: (width - (TARGET_WORD.length * TILE_SIZE)) / 2 }]}>
           <Animated.View
             style={[
               styles.frogContainer,
@@ -464,7 +485,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', // Align start so the frog starts at index 0
     justifyContent: 'center',
     width: '100%',
-    paddingLeft: (width - (TARGET_WORD.length * TILE_SIZE)) / 2, // Centers the whole row
   },
   frogContainer: {
     position: 'absolute',
@@ -549,5 +569,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#558b2f',
     lineHeight: 20,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#f1f8e9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#2e7d32',
+    fontWeight: '600',
+    fontStyle: 'italic',
   },
 });
