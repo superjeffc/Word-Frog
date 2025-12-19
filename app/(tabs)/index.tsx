@@ -36,10 +36,18 @@ const getWordOfTheDay = () => {
 };
 
 export default function App() {
-  const TARGET_WORD = getWordOfTheDay();
-  const { width } = useWindowDimensions(); // Dynamic width that updates on resize
-  const DYNAMIC_TILE_SIZE = Math.min(43, (width - 40) / TARGET_WORD.length); // We cap it at 43 so short words don't become giant.
-  const DYNAMIC_FONT_SIZE = DYNAMIC_TILE_SIZE * 0.45; // Scales text with the box
+  const { width } = useWindowDimensions();
+
+  // Calculate how much space is available for the whole row
+  const TARGET_WORD = React.useMemo(() => getWordOfTheDay(), []);
+  const AVAILABLE_WIDTH = width - 40; // Total screen width minus side padding
+  const TILE_SPACE = AVAILABLE_WIDTH / TARGET_WORD.length;
+
+  // Cap the tile space at 43px, then subtract the margins (4px each side) for the box width
+  const DYNAMIC_TILE_SIZE = Math.min(43, TILE_SPACE);
+  const BOX_SIZE = DYNAMIC_TILE_SIZE - 8; // Subtracting the 4px margin from both sides
+  const DYNAMIC_FONT_SIZE = BOX_SIZE * 0.6;
+
   const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
   const [appIsReady, setAppIsReady] = useState(false);
   const [revealedPrefix, setRevealedPrefix] = useState(TARGET_WORD[0]);
@@ -111,21 +119,16 @@ export default function App() {
 
   // 2. Animate the frog whenever the revealedPrefix changes
   useEffect(() => {
-    // Don't jump on the very first letter when app loads
     if (revealedPrefix.length > 1) {
       const nextIndex = revealedPrefix.length - 1;
-
-      // Slide horizontally
       Animated.spring(frogX, {
         toValue: nextIndex * DYNAMIC_TILE_SIZE,
         friction: 8,
         useNativeDriver: true,
       }).start();
-
-      // TRIGGER THE JUMP HERE
       jumpFrog();
     }
-  }, [revealedPrefix]);
+  }, [revealedPrefix, DYNAMIC_TILE_SIZE]);
 
   const inputRef = useRef(null);
 
@@ -275,13 +278,16 @@ export default function App() {
           <Text style={styles.stats}>Turn: {turnCount + 1} | {getTimeElapsed()}</Text>
         </View>
 
-        <View style={[styles.gameArea, { paddingLeft: (width - (TARGET_WORD.length * DYNAMIC_TILE_SIZE)) / 2 }]}>
-          <Animated.View
+        <View style={styles.gameArea}>
+          {/* This wrapper is exactly the width of the word grid */}
+          <View style={{ width: TARGET_WORD.length * DYNAMIC_TILE_SIZE, position: 'relative' }}>
+
+            <Animated.View
               style={[
                 styles.frogContainer,
                 {
-                  width: DYNAMIC_TILE_SIZE, // Match new width
-                  left: 4,
+                  width: DYNAMIC_TILE_SIZE,
+                  left: 0, // Now '0' is the exact start of the first box
                   transform: [
                     { translateX: frogX },
                     { translateY: frogY }
@@ -291,25 +297,30 @@ export default function App() {
             >
               <Image
                 source={require('../../assets/images/frog.png')}
-                style={{ width: DYNAMIC_TILE_SIZE * 0.8, height: DYNAMIC_TILE_SIZE * 0.8, resizeMode: 'contain' }}
+                style={{ width: BOX_SIZE, height: BOX_SIZE, resizeMode: 'contain' }}
               />
             </Animated.View>
 
-        <View style={styles.wordContainer}>
-            {TARGET_WORD.split('').map((letter, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.letterBox,
-                  { width: DYNAMIC_TILE_SIZE - 8, height: (DYNAMIC_TILE_SIZE - 8) * 1.3 }, // Dynamic Box
-                  index < revealedPrefix.length && styles.revealedBox
-                ]}
-              >
-                <Text style={[styles.letterText, { fontSize: DYNAMIC_FONT_SIZE }]}>
-                  {index < revealedPrefix.length ? letter : ''}
-                </Text>
-              </View>
-            ))}
+            <View style={styles.wordContainer}>
+              {TARGET_WORD.split('').map((letter, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.letterBox,
+                    {
+                      width: BOX_SIZE,
+                      height: BOX_SIZE * 1.3,
+                      marginHorizontal: 4 // This creates the 8px total gap between tiles
+                    },
+                    index < revealedPrefix.length && styles.revealedBox
+                  ]}
+                >
+                  <Text style={[styles.letterText, { fontSize: DYNAMIC_FONT_SIZE }]}>
+                    {index < revealedPrefix.length ? letter : ''}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -444,11 +455,11 @@ const styles = StyleSheet.create({
   stats: { fontSize: 18, color: '#558b2f', fontWeight: '600' },
   revealedBox: { backgroundColor: '#4caf50', borderColor: '#1b5e20', marginBottom: 30 },
   letterText: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
-    textAlign: 'center', // Force horizontal text alignment
-    includeFontPadding: false, // Prevents extra vertical space on Android
+    textAlign: 'center',
+    includeFontPadding: false, // Fixes vertical centering on Android
+    textAlignVertical: 'center',
   },
   inputArea: { width: '100%', alignItems: 'center' },
   messageText: { marginBottom: 15, fontSize: 17, fontWeight: '600', color: '#444', textAlign: 'center', minHeight: 25 },
@@ -492,40 +503,10 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginTop: 20,
   },
-
-  gameArea: {
-    alignItems: 'flex-start', // Align start so the frog starts at index 0
-    justifyContent: 'center',
-    width: '100%',
-  },
-  frogContainer: {
-    position: 'absolute',
-    top: -35, // Positioned right above the letter boxes
-    width: 35,
-    paddingLeft: 6,
-    height: 35,
-    zIndex: 10,
-    alignItems: 'center',
-  },
   frogImage: {
     width: 35,
     height: 35,
     resizeMode: 'contain',
-  },
-  wordContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  letterBox: {
-    width: 35,
-    height: 45,
-    borderWidth: 2,
-    borderColor: '#c8e6c9',
-    margin: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#fff',
   },
   titleRow: {
     flexDirection: 'row',
@@ -595,5 +576,31 @@ const styles = StyleSheet.create({
     color: '#2e7d32',
     fontWeight: '600',
     fontStyle: 'italic',
+  },
+
+  gameArea: {
+    width: '100%',
+    alignItems: 'center',    // This centers the gridWrapper automatically
+    justifyContent: 'center',
+    marginVertical: 20,
+  },
+  frogContainer: {
+    position: 'absolute',
+    top: -35,
+    zIndex: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wordContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  letterBox: {
+    borderWidth: 2,
+    borderColor: '#c8e6c9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
 });
