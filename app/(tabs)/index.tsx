@@ -254,7 +254,12 @@ export default function App() {
           <Text style={styles.stats}>Turn: {turnCount + 1} | {getTimeElapsed()}</Text>
         </View>
 
-        <View style={styles.gameArea}>
+        <View
+          style={[
+            styles.gameArea,
+            { paddingLeft: (width - (TARGET_WORD.length * TILE_SIZE)) / 2 }
+          ]}
+        >
           <Animated.View
             style={[
               styles.frogContainer,
@@ -452,7 +457,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', // Align start so the frog starts at index 0
     justifyContent: 'center',
     width: '100%',
-    paddingLeft: (width - (TARGET_WORD.length * TILE_SIZE)) / 2, // Centers the whole row
   },
   frogContainer: {
     position: 'absolute',
