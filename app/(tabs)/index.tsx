@@ -110,7 +110,7 @@ export default function App() {
       setRevealedPrefix(TARGET_WORD);
       setEndTime(new Date());
       setIsGameOver(true);
-      setMessage("BULLSEYE! 🐸🏆");
+      setMessage("BULLSEYE! 🐸🏆\n\nCome back tomorrow for another word!");
       return;
     }
 
