@@ -180,10 +180,7 @@ export default function App() {
 
   const handleShare = async () => {
     try {
-      const result = await Share.share({ message: getStatsString() });
-      if (result.action === Share.dismissedAction) {
-        copyToClipboard();
-      }
+      await Share.share({ message: getStatsString() });
     } catch (error) {
       copyToClipboard();
     }
