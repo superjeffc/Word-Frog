@@ -37,9 +37,9 @@ const getWordOfTheDay = () => {
 // Measure the screen to help with positioning
 const { width } = Dimensions.get('window');
 const TILE_SIZE = 43; // 35 (width) + 8 (margin)
+const TARGET_WORD = getWordOfTheDay();
 
 export default function App() {
-  const TARGET_WORD = getWordOfTheDay();
   const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
 
   const [revealedPrefix, setRevealedPrefix] = useState(TARGET_WORD[0]);
@@ -254,12 +254,7 @@ export default function App() {
           <Text style={styles.stats}>Turn: {turnCount + 1} | {getTimeElapsed()}</Text>
         </View>
 
-        <View
-          style={[
-            styles.gameArea,
-            { paddingLeft: (width - (TARGET_WORD.length * TILE_SIZE)) / 2 }
-          ]}
-        >
+        <View style={styles.gameArea}>
           <Animated.View
             style={[
               styles.frogContainer,
@@ -457,6 +452,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', // Align start so the frog starts at index 0
     justifyContent: 'center',
     width: '100%',
+    paddingLeft: (width - (TARGET_WORD.length * TILE_SIZE)) / 2, // Centers the whole row
   },
   frogContainer: {
     position: 'absolute',
