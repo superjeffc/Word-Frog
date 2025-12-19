@@ -55,7 +55,7 @@ export default function AboutScreen() {
         <View style={styles.card}>
           <Text style={styles.label}>Support the App</Text>
           <Text style={styles.description}>
-            If you enjoy playing Big Bowl, consider buying me a coffee to keep the updates coming!
+            If you enjoy playing Word Frog, consider buying me a coffee to keep the updates coming!
           </Text>
 
           <TouchableOpacity style={styles.donateButton} onPress={openPayPalLink}>
