@@ -36,10 +36,10 @@ const getWordOfTheDay = () => {
 };
 
 export default function App() {
-  // Measure the screen to help with positioning
-  const { width } = useWindowDimensions(); // Dynamic width that updates on resize
-  const TILE_SIZE = 43; // 35 (width) + 8 (margin)
   const TARGET_WORD = getWordOfTheDay();
+  const { width } = useWindowDimensions(); // Dynamic width that updates on resize
+  const DYNAMIC_TILE_SIZE = Math.min(43, (width - 40) / TARGET_WORD.length); // We cap it at 43 so short words don't become giant.
+  const DYNAMIC_FONT_SIZE = DYNAMIC_TILE_SIZE * 0.45; // Scales text with the box
   const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
   const [appIsReady, setAppIsReady] = useState(false);
   const [revealedPrefix, setRevealedPrefix] = useState(TARGET_WORD[0]);
@@ -117,7 +117,7 @@ export default function App() {
 
       // Slide horizontally
       Animated.spring(frogX, {
-        toValue: nextIndex * TILE_SIZE,
+        toValue: nextIndex * DYNAMIC_TILE_SIZE,
         friction: 8,
         useNativeDriver: true,
       }).start();
@@ -275,31 +275,37 @@ export default function App() {
           <Text style={styles.stats}>Turn: {turnCount + 1} | {getTimeElapsed()}</Text>
         </View>
 
-        <View style={[styles.gameArea, { paddingLeft: (width - (TARGET_WORD.length * TILE_SIZE)) / 2 }]}>
+        <View style={[styles.gameArea, { paddingLeft: (width - (TARGET_WORD.length * DYNAMIC_TILE_SIZE)) / 2 }]}>
           <Animated.View
-            style={[
-              styles.frogContainer,
-              {
-                transform: [
-                  { translateX: frogX }, // The slide
-                  { translateY: frogY }  // The jump
-                ]
-              }
-            ]}
-          >
-            <Image source={require('../../assets/images/frog.png')} style={styles.frogImage} />
-          </Animated.View>
+              style={[
+                styles.frogContainer,
+                {
+                  width: DYNAMIC_TILE_SIZE, // Match new width
+                  left: 4,
+                  transform: [
+                    { translateX: frogX },
+                    { translateY: frogY }
+                  ]
+                }
+              ]}
+            >
+              <Image
+                source={require('../../assets/images/frog.png')}
+                style={{ width: DYNAMIC_TILE_SIZE * 0.8, height: DYNAMIC_TILE_SIZE * 0.8, resizeMode: 'contain' }}
+              />
+            </Animated.View>
 
-          <View style={styles.wordContainer}>
+        <View style={styles.wordContainer}>
             {TARGET_WORD.split('').map((letter, index) => (
               <View
                 key={index}
                 style={[
                   styles.letterBox,
+                  { width: DYNAMIC_TILE_SIZE - 8, height: (DYNAMIC_TILE_SIZE - 8) * 1.3 }, // Dynamic Box
                   index < revealedPrefix.length && styles.revealedBox
                 ]}
               >
-                <Text style={styles.letterText}>
+                <Text style={[styles.letterText, { fontSize: DYNAMIC_FONT_SIZE }]}>
                   {index < revealedPrefix.length ? letter : ''}
                 </Text>
               </View>
@@ -437,7 +443,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 42, fontWeight: '900', color: '#2e7d32', letterSpacing: -1 },
   stats: { fontSize: 18, color: '#558b2f', fontWeight: '600' },
   revealedBox: { backgroundColor: '#4caf50', borderColor: '#1b5e20', marginBottom: 30 },
-  letterText: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+  letterText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center', // Force horizontal text alignment
+    includeFontPadding: false, // Prevents extra vertical space on Android
+  },
   inputArea: { width: '100%', alignItems: 'center' },
   messageText: { marginBottom: 15, fontSize: 17, fontWeight: '600', color: '#444', textAlign: 'center', minHeight: 25 },
   winMessage: { color: '#2e7d32', fontSize: 22 },
