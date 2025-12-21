@@ -7,6 +7,7 @@ import {
   Animated,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -241,6 +242,18 @@ export default function App() {
     }
   };
 
+  const openDefinition = () => {
+    const url = `https://www.google.com/search?q=define+${TARGET_WORD.toLowerCase()}`;
+
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        Alert.alert("Error", "Could not open definition");
+      }
+    });
+  };
+
   if (!appIsReady) {
     return (
       <View style={styles.loadingContainer}>
@@ -327,6 +340,12 @@ export default function App() {
               <Text style={styles.finalStats}>
                 Solved in {turnCount} turns and {getTimeElapsed()}!
               </Text>
+
+              {/* --- DEFINITION BUTTON --- */}
+              <TouchableOpacity style={styles.definitionBtn} onPress={openDefinition}>
+                <Text style={styles.definitionText}>📖 See Definition</Text>
+              </TouchableOpacity>
+              {/* ------------------------- */}
 
               <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
                 <Text style={styles.buttonText}>SHARE SCORE</Text>
@@ -595,5 +614,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 8,
     backgroundColor: '#fff',
+  },
+
+  definitionBtn: {
+    marginBottom: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#e8f5e9',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#a5d6a7',
+  },
+  definitionText: {
+    color: '#2e7d32',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
