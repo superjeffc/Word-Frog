@@ -35,7 +35,7 @@ export default function AboutScreen() {
       {/* Developer Info */}
       <View style={styles.card}>
         <Text style={styles.label}>Created by</Text>
-        <Text style={styles.developerName}>Jeffrey Chan</Text>
+        <Text style={styles.developerName}>Jeff Chan</Text>
         <TouchableOpacity style={styles.profileButton} onPress={openPortfolio}>
           <Ionicons name="link" size={24} color="white" style={{ marginRight: 10 }} />
           <Text style={styles.donateText}>Visit my Website</Text>
