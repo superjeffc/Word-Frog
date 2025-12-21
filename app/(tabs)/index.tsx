@@ -6,20 +6,24 @@ import {
   Alert,
   Animated,
   Image,
-  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
   ScrollView,
   Share,
   StyleSheet, Text,
-  TextInput,
   TouchableOpacity,
   View,
   useWindowDimensions
 } from 'react-native';
 
 import { DICTIONARY, TARGET_WORDS } from '../../constants/words';
+
+const KEYBOARD_ROWS = [
+  ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+  ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+  ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "⌫"]
+];
 
 const getWordOfTheDay = () => {
   const now = new Date();
@@ -131,8 +135,6 @@ export default function App() {
     }
   }, [revealedPrefix, DYNAMIC_TILE_SIZE]);
 
-  const inputRef = useRef(null);
-
   const getTimeElapsed = () => {
     // If the game hasn't started yet, or start time isn't set, show 0
     if (!startTime) return "0 seconds";
@@ -148,17 +150,24 @@ export default function App() {
     return mins === 0 ? `${secs} second(s)` : `${mins}m ${secs.toString().padStart(2, '0')}s`;
   };
 
+  const handleKeyPress = (key) => {
+    if (isGameOver) return;
+
+    if (key === 'ENTER') {
+      handleSubmit();
+    } else if (key === '⌫') {
+      setUserInput((prev) => prev.slice(0, -1));
+    } else {
+      setUserInput((prev) => prev + key);
+    }
+  };
+
   const startLeapFrog = () => {
     const now = new Date(); // Create one single timestamp
 
     setShowRules(false);
     setStartTime(now);      // Set the start point
     setCurrentTime(now);    // Sync the current tick immediately
-
-    // Delay focus slightly to ensure the keyboard doesn't clash with the modal closing
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
   };
 
   const getStatsString = () => {
@@ -188,28 +197,24 @@ export default function App() {
     const guess = userInput.trim().toUpperCase();
 
     if (!guess) {
-      inputRef.current?.focus();
       return;
     }
 
     if (usedWords.includes(guess)) {
       setMessage(`❌ You already used "${guess}"!`);
       setUserInput('');
-      inputRef.current?.focus();
       return;
     }
 
     if (!guess.startsWith(revealedPrefix)) {
       setMessage(`❌ Must start with "${revealedPrefix}"`);
       setUserInput('');
-      inputRef.current?.focus();
       return;
     }
 
     if (!DICTIONARY_SET.has(guess) && guess !== TARGET_WORD) {
       setMessage(`❌ "${guess}" isn't in our dictionary!`);
       setUserInput('');
-      inputRef.current?.focus();
       return;
     }
 
@@ -237,8 +242,6 @@ export default function App() {
       setMessage("Word Complete!");
     } else {
       setMessage(`✅ Nice! Next letter: ${nextLetter}`);
-      // Keep focus on submit
-      inputRef.current?.focus();
     }
   };
 
@@ -264,15 +267,9 @@ export default function App() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <StatusBar style="dark" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>WORD FROG</Text>
@@ -357,22 +354,42 @@ export default function App() {
             </View>
           ) : (
             <>
-              <TextInput
-                ref={inputRef}
-                style={styles.input}
-                value={userInput}
-                onChangeText={setUserInput}
-                placeholder="Type a word..."
-                autoCapitalize="characters"
-                autoCorrect={false}
-                autoFocus={false} // CHANGED: Set to false to prevent initial keyboard popup
-                blurOnSubmit={false} // This ensures the keyboard stays up AFTER submitting
-                onSubmitEditing={handleSubmit}
-                placeholderTextColor="#999"
-              />
-              <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-                <Text style={styles.buttonText}>SUBMIT GUESS</Text>
-              </TouchableOpacity>
+
+              {/* Custom Input Display */}
+              <View style={styles.customInputDisplay}>
+                <Text style={styles.customInputText}>
+                  {userInput || "TAP LETTERS..."}
+                </Text>
+              </View>
+
+              {/* On-Screen Keyboard */}
+              <View style={styles.keyboardContainer}>
+                {KEYBOARD_ROWS.map((row, rowIndex) => (
+                  <View key={rowIndex} style={styles.keyboardRow}>
+                    {row.map((key) => {
+                      // Style tweak for special keys
+                      const isSpecial = key === 'ENTER' || key === '⌫';
+                      return (
+                        <TouchableOpacity
+                          key={key}
+                          style={[
+                            styles.keyButton,
+                            isSpecial && styles.specialKey
+                          ]}
+                          onPress={() => handleKeyPress(key)}
+                        >
+                          <Text style={[
+                            styles.keyText,
+                            isSpecial && styles.specialKeyText
+                          ]}>
+                            {key}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
             </>
           )}
         </View>
@@ -442,7 +459,7 @@ export default function App() {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -630,4 +647,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+
+  customInputDisplay: {
+    width: '85%',
+    height: 60,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#81c784',
+    marginBottom: 20,
+  },
+  customInputText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    letterSpacing: 2,
+  },
+
+  // Keyboard Styles
+  keyboardContainer: {
+    width: '100%',
+    paddingHorizontal: 5,
+    marginBottom: 20,
+  },
+  keyboardRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  keyButton: {
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    marginHorizontal: 3,
+    height: 50,
+    minWidth: 32, // Ensures thin letters like I are easy to hit
+    flex: 1,      // Distributes space evenly
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+  },
+  keyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  specialKey: {
+    backgroundColor: '#e0e0e0', // Slightly darker for Enter/Backspace
+    flex: 1.5, // Make them a bit wider than letters
+  },
+  specialKeyText: {
+    fontSize: 14,
+  }
 });
