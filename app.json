@@ -3,6 +3,11 @@
     "name": "Word Frog",
     "slug": "wordfrog",
     "version": "1.0.2",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "orientation": "portrait",
     "icon": "./assets/images/frog.png",
     "scheme": "wordfrog",
