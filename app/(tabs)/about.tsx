@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Linking,
@@ -37,7 +36,6 @@ export default function AboutScreen() {
         <Text style={styles.label}>Created by</Text>
         <Text style={styles.developerName}>Jeff Chan</Text>
         <TouchableOpacity style={styles.profileButton} onPress={openPortfolio}>
-          <Ionicons name="link" size={24} color="white" style={{ marginRight: 10 }} />
           <Text style={styles.donateText}>Visit my Website</Text>
         </TouchableOpacity>
       </View>
@@ -59,11 +57,9 @@ export default function AboutScreen() {
           </Text>
 
           <TouchableOpacity style={styles.donateButton} onPress={openPayPalLink}>
-            <Ionicons name="heart" size={24} color="white" style={{ marginRight: 10 }} />
             <Text style={styles.donateText}>Paypal</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.donateButton} onPress={openVenmoLink}>
-            <Ionicons name="heart" size={24} color="white" style={{ marginRight: 10 }} />
             <Text style={styles.donateText}>Venmo</Text>
           </TouchableOpacity>
         </View>
