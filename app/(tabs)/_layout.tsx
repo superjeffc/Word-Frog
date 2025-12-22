@@ -14,6 +14,18 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarLabelPosition: 'beside-icon',
+        tabBarIconStyle: { display: 'none' },
+        tabBarItemStyle: {
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        tabBarLabelStyle: {
+          fontSize: 15,
+          fontWeight: '600',
+          marginBottom: 0, // Reset any margins pushing it down
+          position: 'relative', // Ensure it respects flexbox
+        },
       }}>
       <Tabs.Screen
         name="index"
