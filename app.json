@@ -28,7 +28,8 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/frog.png"
+      "favicon": "./assets/images/frog.png",
+      "name":"Word Frog | Word Guessing Game"
     },
     "plugins": [
       "expo-router",
