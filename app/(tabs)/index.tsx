@@ -67,6 +67,12 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      document.title = "Word Frog | Word Guessing Game";
+    }
+  }, []);
+
+  useEffect(() => {
     async function prepare() {
       try {
         // Simulating a tiny delay for the dictionary setup
