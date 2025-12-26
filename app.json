@@ -28,7 +28,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.ico",
+      "favicon": "./assets/images/favicon.png",
       "name":"Word Frog | Daily Word Guessing Game"
     },
     "plugins": [
