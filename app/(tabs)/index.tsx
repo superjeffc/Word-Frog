@@ -114,7 +114,7 @@ export default function App() {
   const [usedWords, setUsedWords] = useState([]);
   const [turnCount, setTurnCount] = useState(0);
   const [endTime, setEndTime] = useState(null);
-  const [message, setMessage] = useState(`Starts with "${TARGET_WORD[0]}"`);
+  const [message, setMessage] = useState(`"${TARGET_WORD.length} letters. Starts with "${TARGET_WORD[0]}"`);
   const [isGameOver, setIsGameOver] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [startTime, setStartTime] = useState(null);
@@ -224,11 +224,29 @@ export default function App() {
     setCurrentTime(now);    // Sync the current tick immediately
   };
 
+  const calculateScore = (totalGuesses, maxGuesses, seconds) =>  {
+    // 1. Accuracy Base (0 to 100)
+    const incorrectGuesses = Math.max(0, totalGuesses - 1);
+    const accuracyMultiplier = Math.max(0, (maxGuesses - incorrectGuesses) / maxGuesses);
+    const baseScore = accuracyMultiplier * 100;
+
+    // 2. Logarithmic Decay
+    const timeDivider = Math.log10(seconds + 10);
+
+    const finalScore = baseScore / timeDivider;
+
+    return finalScore.toFixed(2);
+  }
+
   const getStatsString = () => {
+    let timeElapsed = (endTime - startTime) / 1000;
+    let today = new Date().toLocaleDateString('en-CA');
+
     return (
-      `#WordFrog 🐸\n` +
-      `🏆 Solved in ${turnCount} turns\n` +
-      `⏱️ Time: ${getTimeElapsed()}\n\n` +
+      `🐸 #WordFrog on ${today}\n` +
+      `🔄 Solved in ${turnCount} turns\n` +
+      `⏱️ Time: ${getTimeElapsed()}\n` +
+      `🏆 Score: ${calculateScore(turnCount, TARGET_WORD.length, timeElapsed)}\n\n` +
       `Play here: wordfrog.superjeffc.com`
     );
   };
@@ -332,7 +350,7 @@ export default function App() {
               style={styles.headerFrog}
             />
           </View>
-          <Text style={styles.stats}>Turn: {turnCount + 1} | {getTimeElapsed()}</Text>
+          <Text style={styles.stats}>Turn: {isGameOver ? turnCount : turnCount + 1} | {getTimeElapsed()}</Text>
         </View>
 
         <View style={styles.gameArea}>
