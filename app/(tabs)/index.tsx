@@ -263,7 +263,11 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    await Share.share({ message: getStatsString() });
+    try {
+      await Share.share({ message: getStatsString() });
+    } catch (e) {
+      copyToClipboard();
+    }
   };
 
   const handleSubmit = () => {
@@ -420,10 +424,6 @@ export default function App() {
 
               <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
                 <Text style={styles.buttonText}>SHARE SCORE</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={copyToClipboard} style={styles.copyLink}>
-                <Text style={styles.copyLinkText}>Copy to clipboard</Text>
               </TouchableOpacity>
             </View>
           ) : (
