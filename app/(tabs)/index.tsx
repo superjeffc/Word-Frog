@@ -224,9 +224,12 @@ export default function App() {
     setCurrentTime(now);    // Sync the current tick immediately
   };
 
-  const calculateScore = (totalGuesses, maxGuesses, seconds) =>  {
+  const calculateScore = () =>  {
+    let seconds = Math.max(0, (endTime - startTime) / 1000);
+    let maxGuesses = TARGET_WORD.length;
+
     // 1. Accuracy Base (0 to 100)
-    const incorrectGuesses = Math.max(0, totalGuesses - 1);
+    const incorrectGuesses = Math.max(0, turnCount - 1);
     const accuracyMultiplier = Math.max(0, (maxGuesses - incorrectGuesses) / maxGuesses);
     const baseScore = accuracyMultiplier * 100;
 
@@ -239,14 +242,13 @@ export default function App() {
   }
 
   const getStatsString = () => {
-    let timeElapsed = (endTime - startTime) / 1000;
     let today = new Date().toLocaleDateString('en-CA');
 
     return (
       `🐸 #WordFrog on ${today}\n` +
       `🔄 Solved in ${turnCount} turns\n` +
       `⏱️ Time: ${getTimeElapsed()}\n` +
-      `🏆 Score: ${calculateScore(turnCount, TARGET_WORD.length, timeElapsed)}\n\n` +
+      `🏆 Score: ${calculateScore()}\n\n` +
       `Play here: wordfrog.superjeffc.com`
     );
   };
@@ -407,7 +409,7 @@ export default function App() {
           {isGameOver ? (
             <View style={styles.winBox}>
               <Text style={styles.finalStats}>
-                Solved in {turnCount} turns and {getTimeElapsed()}!
+                Your Score: {calculateScore()}
               </Text>
 
               {/* --- DEFINITION BUTTON --- */}
