@@ -9,7 +9,7 @@
       "web"
     ],
     "orientation": "portrait",
-    "icon": "./assets/images/frog.png",
+    "icon": "./assets/images/frog.webp",
     "scheme": "wordfrog",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,24 +19,24 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/frog.png",
-        "backgroundImage": "./assets/images/frog.png",
-        "monochromeImage": "./assets/images/frog.png"
+        "foregroundImage": "./assets/images/frog.webp",
+        "backgroundImage": "./assets/images/frog.webp",
+        "monochromeImage": "./assets/images/frog.webp"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/frog.png",
-      "name":"Word Frog | Word Guessing Game"
+      "favicon": "./assets/images/favicon.ico",
+      "name":"Word Frog | Daily Word Guessing Game"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/frog.png",
+          "image": "./assets/images/frog.webp",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

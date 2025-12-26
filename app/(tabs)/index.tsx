@@ -53,6 +53,60 @@ export default function App() {
   const BOX_SIZE = DYNAMIC_TILE_SIZE - 8; // Subtracting the 4px margin from both sides
   const DYNAMIC_FONT_SIZE = BOX_SIZE * 0.6;
 
+  // --- WEB SEO & SCHEMA INJECTION ---
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      document.title = "Word Frog | Daily Word Guessing Game";
+
+      // 1. Meta Tags
+      const metaData = [
+        { name: 'description', content: 'A daily word guessing game that challenges your vocabulary.' },
+        { property: 'og:title', content: 'Word Frog | Daily Word Game' },
+        { property: 'og:description', content: 'A daily word guessing game that challenges your vocabulary.' },
+        { property: 'og:image', content: 'https://wordfrog.superjeffc.com/favicon.ico' },
+        { property: 'og:url', content: 'https://wordfrog.superjeffc.com' },
+        { name: 'twitter:card', content: 'summary_large_image' }
+      ];
+
+      metaData.forEach(data => {
+        let tag = document.querySelector(`meta[${data.name ? 'name' : 'property'}="${data.name || data.property}"]`);
+        if (!tag) {
+          tag = document.createElement('meta');
+          if (data.name) tag.setAttribute('name', data.name);
+          if (data.property) tag.setAttribute('property', data.property);
+          document.head.appendChild(tag);
+        }
+        tag.setAttribute('content', data.content);
+      });
+
+      // 2. JSON-LD Schema
+      const schemaData = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Word Frog",
+        "operatingSystem": "Web",
+        "applicationCategory": "GameApplication",
+        "genre": "Word Game",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "A daily word guessing game that challenges your vocabulary."
+      };
+
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(schemaData);
+      document.head.appendChild(script);
+
+      return () => {
+        document.head.removeChild(script);
+      };
+    }
+  }, []);
+  // ----------------------------------
+
   const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
   const [appIsReady, setAppIsReady] = useState(false);
   const [revealedPrefix, setRevealedPrefix] = useState(TARGET_WORD[0]);
@@ -65,12 +119,6 @@ export default function App() {
   const [showRules, setShowRules] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      document.title = "Word Frog | Word Guessing Game";
-    }
-  }, []);
 
   useEffect(() => {
     async function prepare() {
@@ -280,7 +328,7 @@ export default function App() {
           <View style={styles.titleRow}>
             <Text style={styles.title}>WORD FROG</Text>
             <Image
-              source={require('../../assets/images/froghead.png')}
+              source={require('../../assets/images/froghead.webp')}
               style={styles.headerFrog}
             />
           </View>
@@ -305,7 +353,7 @@ export default function App() {
               ]}
             >
               <Image
-                source={require('../../assets/images/frog.png')}
+                source={require('../../assets/images/frog.webp')}
                 style={{ width: BOX_SIZE, height: BOX_SIZE, resizeMode: 'contain' }}
               />
             </Animated.View>
@@ -419,7 +467,7 @@ export default function App() {
             {/* You can even add that frog image here! */}
             <Text style={styles.modalTitle}>How to Play
               <Image
-                source={require('../../assets/images/froghead.png')}
+                source={require('../../assets/images/froghead.webp')}
                 style={styles.howtoplayFrog}
               />
             </Text>
