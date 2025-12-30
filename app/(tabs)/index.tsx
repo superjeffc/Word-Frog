@@ -58,7 +58,7 @@ export default function App() {
     if (Platform.OS === 'web') {
       document.title = "Word Frog | Daily Word Guessing Game";
 
-      // 1. Meta Tags
+      // Meta Tags
       const metaData = [
         { name: 'description', content: 'A daily word guessing game that challenges your vocabulary.' },
         { property: 'og:title', content: 'Word Frog | Daily Word Game' },
@@ -79,7 +79,42 @@ export default function App() {
         tag.setAttribute('content', data.content);
       });
 
-      // 2. JSON-LD Schema
+      // Link Tags
+      interface LinkTag {
+        rel: string;
+        href: string;
+        type?: string;
+        sizes?: string;
+      }
+
+      const linkTags: LinkTag[] = [
+        { rel: 'icon', type: 'image/png', href: '/favicon-96x96.png', sizes: '96x96' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'shortcut icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/site.webmanifest' }
+      ];
+
+      linkTags.forEach(data => {
+        const sizeSelector = data.sizes ? `[sizes="${data.sizes}"]` : '';
+        const selector = `link[rel="${data.rel}"]${sizeSelector}`;
+
+        let tag = document.querySelector(selector) as HTMLLinkElement | null;
+
+        if (!tag) {
+          tag = document.createElement('link');
+          document.head.appendChild(tag);
+        }
+
+        (Object.keys(data) as Array<keyof LinkTag>).forEach(key => {
+          const value = data[key];
+          if (value) {
+            tag?.setAttribute(key, value);
+          }
+        });
+      });
+
+      // JSON-LD Schema
       const schemaData = {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
