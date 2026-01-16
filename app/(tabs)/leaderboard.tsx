@@ -21,15 +21,24 @@ const LeaderboardScreen = () => {
 
   const fetchLeaderboard = async () => {
     try {
-      setLoading(true);
-      // Toggle endpoint based on current view
+      // Only show the full-screen loader if we don't have data yet
+      // This prevents the "blank screen" flash on the 2nd click
+      if (data.length === 0) {
+        setLoading(true);
+      }
+
       const endpoint = view === 'today' ? '/leaderboard' : '/total-completed';
       const response = await fetch(`${API_URL}${endpoint}`);
+
       if (!response.ok) throw new Error("Network response was not ok");
+
       const json = await response.json();
+
+      // Update the data only when we have the result
       setData(json);
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
+      // Optional: Alert the user if it fails
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -63,14 +72,26 @@ const LeaderboardScreen = () => {
 
   const renderItem = ({ item, index }) => {
     const isMe = item.username === savedName;
+
+    // Handle the case where score might be missing or 0
+    const displayScore = (item.score !== undefined && item.score !== null)
+      ? item.score.toFixed(2)
+      : "0.00";
+
     return (
       <View style={[styles.row, isMe && styles.myRow]}>
-        <Text style={styles.rankText}>{index + 1}</Text>
-        <Text style={styles.username}>{item.username}</Text>
+        <View style={styles.rankContainer}>
+          <Text style={[styles.rankText, index < 3 && styles.topThree]}>
+            {index + 1}
+          </Text>
+        </View>
 
-        {/* Show the float. .toFixed(2) ensures it always looks like 85.50 */}
+        <Text style={[styles.username, isMe && styles.myText]}>
+          {item.username} {isMe ? "🐸" : ""}
+        </Text>
+
         <Text style={styles.scoreText}>
-          {view === 'today' ? item.score.toFixed(2) : `${item.total_days} days`}
+          {view === 'today' ? displayScore : `${item.total_days || 0} days`}
         </Text>
       </View>
     );
