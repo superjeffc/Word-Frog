@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
@@ -12,6 +13,7 @@ import {
   ScrollView,
   Share,
   StyleSheet, Text,
+  TextInput,
   TouchableOpacity,
   View,
   useWindowDimensions
@@ -154,6 +156,9 @@ export default function App() {
   const [showRules, setShowRules] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [leaderboardName, setLeaderboardName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     async function prepare() {
@@ -258,6 +263,52 @@ export default function App() {
     setStartTime(now);      // Set the start point
     setCurrentTime(now);    // Sync the current tick immediately
   };
+
+  const submitToLeaderboard = async () => {
+    if (!leaderboardName.trim()) {
+      Alert.alert("Wait!", "Please enter a name for the board.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const finalScore = calculateScore();
+      const response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: leaderboardName,
+          score: Number(finalScore)
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.status === 409) {
+        Alert.alert("Name Taken", "Someone already used that name today! Try another.");
+      } else if (response.ok) {
+        setHasSubmitted(true);
+        // Save name for next time
+        await AsyncStorage.setItem('last_frog_name', leaderboardName);
+        Alert.alert("Success!", "You're on the board.");
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not connect to the leaderboard.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Also add a useEffect to pre-fill the name from AsyncStorage
+  useEffect(() => {
+    const loadSavedName = async () => {
+      const saved = await AsyncStorage.getItem('last_frog_name');
+      if (saved) setLeaderboardName(saved);
+    };
+    loadSavedName();
+  }, []);
 
   const calculateScore = () =>  {
     let seconds = Math.max(0, (endTime - startTime) / 1000);
@@ -450,6 +501,31 @@ export default function App() {
               <Text style={styles.finalStats}>
                 Your Score: {calculateScore()}
               </Text>
+
+              {!hasSubmitted ? (
+                <View style={{ width: '100%', alignItems: 'center' }}>
+                  <TextInput
+                    style={styles.leaderboardInput}
+                    placeholder="Enter Name for Leaderboard"
+                    value={leaderboardName}
+                    onChangeText={setLeaderboardName}
+                    maxLength={15}
+                  />
+                  <TouchableOpacity
+                    style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
+                    onPress={submitToLeaderboard}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.buttonText}>SUBMIT SCORE 🐸</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={styles.submittedText}>✓ Score Submitted!</Text>
+              )}
 
               {/* --- DEFINITION BUTTON --- */}
               <TouchableOpacity style={styles.definitionBtn} onPress={openDefinition}>
@@ -812,5 +888,34 @@ const styles = StyleSheet.create({
   },
   specialKeyText: {
     fontSize: 14,
-  }
+  },
+
+  leaderboardInput: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#d1fae5',
+    paddingHorizontal: 15,
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 10,
+    fontWeight: 'bold',
+  },
+  submitBtn: {
+    backgroundColor: '#2e7d32',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  submittedText: {
+    color: '#2e7d32',
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 20,
+  },
 });
