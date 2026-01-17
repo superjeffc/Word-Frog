@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: Platform.OS === 'android' ? 20 : 24,
     fontWeight: 'bold',
     color: '#2e7d32',
     marginBottom: 15,
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   goalText: {
-    fontSize: 18,
+    fontSize: Platform.OS === 'android' ? 14 : 18,
     color: '#2e7d32',
     textAlign: 'center',
     marginBottom: 20,
@@ -765,9 +765,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   ruleItem: {
-    fontSize: 15,
+    fontSize: Platform.OS === 'android' ? 12 : 15,
     color: '#333',
-    marginBottom: 15,
+    marginBottom: Platform.OS === 'android' ? 5 : 15,
     lineHeight: 22,
   },
   bold: { fontWeight: 'bold' },
@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   tipText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'android' ? 12 : 14,
     color: '#558b2f',
     lineHeight: 20,
   },
