@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -154,11 +155,11 @@ const LeaderboardScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f0fdf4' },
   header: { padding: 20, alignItems: 'center', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#d1fae5' },
-  title: { fontSize: 24, fontWeight: '900', color: '#166534', marginBottom: 15 },
+  title: { fontSize: Platform.OS === 'android' ? 20 : 24, fontWeight: '900', color: '#166534', marginBottom: 15 },
   toggleContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 25, padding: 4, width: '80%' },
   toggleButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 21 },
   toggleActive: { backgroundColor: '#2d5a27' },
-  toggleLabel: { fontSize: 14, fontWeight: 'bold', color: '#64748b' },
+  toggleLabel: { fontSize: Platform.OS === 'android' ? 10 : 14, fontWeight: 'bold', color: '#64748b' },
   toggleLabelActive: { color: 'white' },
   listContent: { padding: 15 },
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 15, borderRadius: 12, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
