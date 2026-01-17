@@ -21,25 +21,37 @@ const LeaderboardScreen = () => {
 
   const fetchLeaderboard = async () => {
     try {
-      // Only show the full-screen loader if we don't have data yet
-      // This prevents the "blank screen" flash on the 2nd click
+      // 1. Prevent blank screen: Only show full loading if we don't have data yet.
+      // Otherwise, we update silently in the background (or show a small indicator).
       if (data.length === 0) {
         setLoading(true);
       }
 
-      const endpoint = view === 'today' ? '/leaderboard' : '/total-completed';
+      // 2. Get the user's local date in YYYY-MM-DD format (e.g., "2026-01-17")
+      const localDate = new Date().toLocaleDateString('en-CA');
+
+      // 3. Construct the endpoint based on the active view
+      // We pass the localDate as a query parameter for the 'today' view
+      const endpoint = view === 'today'
+        ? `/leaderboard?date=${localDate}`
+        : '/total-completed';
+
       const response = await fetch(`${API_URL}${endpoint}`);
 
-      if (!response.ok) throw new Error("Network response was not ok");
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
 
       const json = await response.json();
 
-      // Update the data only when we have the result
+      // 4. Update state with the new data
+      // By setting data after the fetch completes, the screen doesn't go blank.
       setData(json);
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
       // Optional: Alert the user if it fails
     } finally {
+      // 5. Always stop the loading/refreshing indicators
       setLoading(false);
       setRefreshing(false);
     }
