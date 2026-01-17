@@ -114,7 +114,7 @@ const LeaderboardScreen = () => {
             style={[styles.toggleButton, view === 'allTime' && styles.toggleActive]}
             onPress={() => setView('allTime')}
           >
-            <Text style={[styles.toggleLabel, view === 'allTime' && styles.toggleLabelActive]}>All Time</Text>
+            <Text style={[styles.toggleLabel, view === 'allTime' && styles.toggleLabelActive]}>Puzzles Completed</Text>
           </TouchableOpacity>
         </View>
       </View>
