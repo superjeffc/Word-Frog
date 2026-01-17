@@ -638,7 +638,7 @@ export default function App() {
 
               <View style={styles.tipBox}>
                 <Text style={styles.tipText}>
-                  💡 <Text style={styles.bold}>Pro Tip:</Text> Every word you guess counts as a turn. Be strategic to keep your score low!
+                  💡 <Text style={styles.bold}>Pro Tip:</Text> Every word you guess counts as a turn. Be strategic to keep your turns low!
                 </Text>
               </View>
             </View>
@@ -875,7 +875,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginHorizontal: 3,
     height: 50,
-    minWidth: 32, // Ensures thin letters like I are easy to hit
+    // Use smaller width for Android to keep keyboard compact
+    minWidth: Platform.OS === 'android' ? 24 : 32,
     flex: 1,      // Distributes space evenly
     justifyContent: 'center',
     alignItems: 'center',
@@ -895,7 +896,8 @@ const styles = StyleSheet.create({
     flex: 1.5, // Make them a bit wider than letters
   },
   specialKeyText: {
-    fontSize: 14,
+    fontSize: Platform.OS === 'android' ? 9 : 14,
+    letterSpacing: Platform.OS === 'android' ? -1 : 0,
   },
 
   leaderboardInput: {

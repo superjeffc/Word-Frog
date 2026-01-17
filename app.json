@@ -2,14 +2,14 @@
   "expo": {
     "name": "Word Frog",
     "slug": "wordfrog",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "platforms": [
       "ios",
       "android",
       "web"
     ],
     "orientation": "portrait",
-    "icon": "./assets/images/frog.webp",
+    "icon": "./assets/images/favicon.png",
     "scheme": "wordfrog",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,9 +19,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/frog.webp",
-        "backgroundImage": "./assets/images/frog.webp",
-        "monochromeImage": "./assets/images/frog.webp"
+        "foregroundImage": "./assets/images/favicon.png",
+        "backgroundImage": "./assets/images/favicon.png",
+        "monochromeImage": "./assets/images/favicon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -36,7 +36,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/frog.webp",
+          "image": "./assets/images/favicon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

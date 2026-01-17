@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
@@ -21,7 +22,7 @@ export default function TabLayout() {
           alignItems: 'center',
         },
         tabBarLabelStyle: {
-          fontSize: 15,
+          fontSize: Platform.OS === 'android' ? 12 : 15,
           fontWeight: '600',
           marginBottom: 0, // Reset any margins pushing it down
           position: 'relative', // Ensure it respects flexbox
