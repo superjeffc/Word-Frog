@@ -265,6 +265,7 @@ export default function App() {
   };
 
   const submitToLeaderboard = async () => {
+    // 1. Validate that the user actually entered a name
     if (!leaderboardName.trim()) {
       Alert.alert("Wait!", "Please enter a name for the board.");
       return;
@@ -272,13 +273,19 @@ export default function App() {
 
     setIsSubmitting(true);
     try {
+      // 2. Generate the local date in YYYY-MM-DD format (e.g., "2026-01-17")
+      // This ensures the score is filed under the user's current calendar day
+      const localDate = new Date().toLocaleDateString('en-CA');
       const finalScore = calculateScore();
+
+      // 4. Send the POST request
       const response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: leaderboardName,
-          score: Number(finalScore)
+          score: Number(finalScore),      // Send as a float/number
+          date: localDate                 // Send the local date string
         }),
       });
 
@@ -292,7 +299,8 @@ export default function App() {
         await AsyncStorage.setItem('last_frog_name', leaderboardName);
         Alert.alert("Success!", "You're on the board.");
       } else {
-        throw new Error();
+        // Handle other server errors (400, 500, etc.)
+        throw new Error(result.error || "Submission failed");
       }
     } catch (error) {
       Alert.alert("Error", "Could not connect to the leaderboard.");
