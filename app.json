@@ -24,7 +24,8 @@
         "monochromeImage": "./assets/images/favicon.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.jeffreychan.wordfrog"
     },
     "web": {
       "output": "static",
