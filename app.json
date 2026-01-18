@@ -30,7 +30,7 @@
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png",
-      "name":"Word Frog | Daily Word Guessing Game"
+      "name": "Word Frog | Daily Word Guessing Game"
     },
     "plugins": [
       "expo-router",
@@ -50,6 +50,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f501aabe-3442-484d-b750-a87ec8d7364e"
+      }
     }
   }
 }
