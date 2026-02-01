@@ -8,6 +8,7 @@
     "deploy": "npx gh-pages -d dist  --src \"**/*\" --dotfiles",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
+    "ship-android": "eas build --platform android --profile production",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint"
@@ -48,5 +49,8 @@
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": "22.16"
+  }
 }
