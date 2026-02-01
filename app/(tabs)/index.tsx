@@ -318,20 +318,17 @@ export default function App() {
     loadSavedName();
   }, []);
 
-  const calculateScore = () =>  {
-    let seconds = Math.max(0, (endTime - startTime) / 1000);
-    let maxGuesses = TARGET_WORD.length;
+  const calculateScore = () => {
+    const seconds = Math.max(0, (endTime - startTime) / 1000);
+    const maxGuesses = TARGET_WORD.length;
 
-    // 1. Accuracy Base (0 to 100)
-    const incorrectGuesses = Math.max(0, turnCount - 1);
-    const accuracyMultiplier = Math.max(0, (maxGuesses - incorrectGuesses) / maxGuesses);
-    const baseScore = accuracyMultiplier * 100;
+    // 1. Turn Score: Give a huge weight to fewer turns.
+    const turnScore = Math.max(0, maxGuesses - turnCount) * 100;
 
-    // 2. Logarithmic Decay
-    const timeDivider = Math.log10(seconds + 10);
+    // 2. Time Bonus: A decaying value that is ALWAYS smaller than a single turn's value.
+    const timeBonus = 10 / (1 + Math.log10(seconds + 1));
 
-    const finalScore = baseScore / timeDivider;
-
+    const finalScore = turnScore + timeBonus;
     return finalScore.toFixed(2);
   }
 
