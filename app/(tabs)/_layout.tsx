@@ -31,7 +31,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Normal',
+          tabBarIcon: () => null
+        }}
+      />
+      <Tabs.Screen
+        name="hard"
+        options={{
+          title: 'Hard',
           tabBarIcon: () => null
         }}
       />

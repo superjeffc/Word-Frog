@@ -450,7 +450,7 @@ export default function App() {
               style={styles.headerFrog}
             />
           </View>
-          <Text style={styles.stats}>Turn: {isGameOver ? turnCount : turnCount + 1} | {getTimeElapsed()}</Text>
+          <Text style={styles.stats}>Difficulty: Normal | Turn: {isGameOver ? turnCount : turnCount + 1} | {getTimeElapsed()}</Text>
         </View>
 
         <View style={styles.gameArea}>
@@ -604,7 +604,7 @@ export default function App() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* You can even add that frog image here! */}
-            <Text style={styles.modalTitle}>How to Play
+            <Text style={styles.modalTitle}>How to Play (Normal Mode)
               <Image
                 source={require('../../assets/images/froghead.webp')}
                 style={styles.howtoplayFrog}
