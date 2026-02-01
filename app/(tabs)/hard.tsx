@@ -27,11 +27,13 @@ const KEYBOARD_ROWS = [
   ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "⌫"]
 ];
 
+const WORDS_PER_LETTER = 5;
+
 const getWordOfTheDay = () => {
   const now = new Date();
 
   // 1. Create a stable seed for the day (e.g., 20251219)
-  const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  const seed = now.getFullYear() * 20000 + (now.getMonth() + 1) * 100 + now.getDate();
 
   // 2. Use an LCG formula to scramble the seed
   const scrambled = (seed * 1664525 + 1013904223) % 4294967296;
@@ -150,6 +152,7 @@ export default function App() {
   const [userInput, setUserInput] = useState('');
   const [usedWords, setUsedWords] = useState([]);
   const [turnCount, setTurnCount] = useState(0);
+  const [wordsRequired, setWordsRequired] = useState(WORDS_PER_LETTER);
   const [endTime, setEndTime] = useState(null);
   const [message, setMessage] = useState(`"${TARGET_WORD.length} letters. Starts with "${TARGET_WORD[0]}"`);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -318,20 +321,17 @@ export default function App() {
     loadSavedName();
   }, []);
 
-  const calculateScore = () =>  {
-    let seconds = Math.max(0, (endTime - startTime) / 1000);
-    let maxGuesses = TARGET_WORD.length;
+  const calculateScore = () => {
+    const seconds = Math.max(0, (endTime - startTime) / 1000);
+    const maxGuesses = TARGET_WORD.length * WORDS_PER_LETTER;
 
-    // 1. Accuracy Base (0 to 100)
-    const incorrectGuesses = Math.max(0, turnCount - 1);
-    const accuracyMultiplier = Math.max(0, (maxGuesses - incorrectGuesses) / maxGuesses);
-    const baseScore = accuracyMultiplier * 100;
+    // 1. Turn Score: Give a huge weight to fewer turns.
+    const turnScore = Math.max(0, maxGuesses - turnCount) * 100;
 
-    // 2. Logarithmic Decay
-    const timeDivider = Math.log10(seconds + 10);
+    // 2. Time Bonus: A decaying value that is ALWAYS smaller than a single turn's value.
+    const timeBonus = 10 / (1 + Math.log10(seconds + 1));
 
-    const finalScore = baseScore / timeDivider;
-
+    const finalScore = turnScore + timeBonus;
     return finalScore.toFixed(2);
   }
 
@@ -391,6 +391,7 @@ export default function App() {
     }
 
     setTurnCount(prev => prev + 1);
+    setWordsRequired(prev => prev - 1);
     setUsedWords(prev => [guess, ...prev]);
 
     if (guess === TARGET_WORD) {
@@ -404,15 +405,23 @@ export default function App() {
     const nextIndex = revealedPrefix.length;
     const nextLetter = TARGET_WORD[nextIndex];
     const newPrefix = revealedPrefix + nextLetter;
+    const newWordsRequired = wordsRequired - 1;
 
-    setRevealedPrefix(newPrefix);
+    if (newWordsRequired <= 0) {
+      setRevealedPrefix(newPrefix);
+      setWordsRequired(WORDS_PER_LETTER);
+    }
     setUserInput('');
 
     if (newPrefix === TARGET_WORD) {
       setEndTime(new Date());
       setIsGameOver(true);
       setMessage("Word Complete!");
-    } else {
+    }
+    else if (newWordsRequired < WORDS_PER_LETTER) {
+      setMessage(`✅ Nice! ${newWordsRequired} words to go`);
+    }
+    else {
       setMessage(`✅ Nice! Next letter: ${nextLetter}`);
     }
   };
@@ -450,7 +459,7 @@ export default function App() {
               style={styles.headerFrog}
             />
           </View>
-          <Text style={styles.stats}>Difficulty: Normal | Turn: {isGameOver ? turnCount : turnCount + 1} | {getTimeElapsed()}</Text>
+          <Text style={styles.stats}>Difficulty: Hard | Turn: {isGameOver ? turnCount : turnCount + 1} | Next Letter In: {wordsRequired} | {getTimeElapsed()}</Text>
         </View>
 
         <View style={styles.gameArea}>
@@ -604,7 +613,7 @@ export default function App() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* You can even add that frog image here! */}
-            <Text style={styles.modalTitle}>How to Play (Normal Mode)
+            <Text style={styles.modalTitle}>How to Play (Hard Mode)
               <Image
                 source={require('../../assets/images/froghead.webp')}
                 style={styles.howtoplayFrog}
@@ -623,7 +632,7 @@ export default function App() {
 
               <Text style={styles.ruleItem}>
                 <Text style={styles.bold}>2. Reveal Letters: </Text>
-                Submit <Text style={styles.italic}>any</Text> valid word starting with the shown letters to reveal the <Text style={styles.bold}>next letter</Text>.
+                Submit <Text style={styles.italic}>any five</Text> valid words starting with the shown letters to reveal the <Text style={styles.bold}>next letter</Text>.
               </Text>
 
               {/* Separate line for the restriction */}
