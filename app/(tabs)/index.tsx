@@ -161,6 +161,14 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
+  const notify = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   useEffect(() => {
     async function prepare() {
       try {
@@ -187,11 +195,7 @@ export default function App() {
         const data = await response.json();
 
         if (data.version > CURRENT_VERSION) {
-          if (Platform.OS === 'web') {
-            alert("Update Available!\n\nClear your browser cache and refresh the page to receive the latest version.");
-          } else {
-            Alert.alert("Update Available! Download the latest version from the Play Store!");
-          }
+          notify("Update Available!", "Please download the latest version before continuing.");
         }
       } catch (error) {
         console.error("Version check failed:", error);
@@ -297,7 +301,7 @@ export default function App() {
   const submitToLeaderboard = async () => {
     // 1. Validate that the user actually entered a name
     if (!leaderboardName.trim()) {
-      Alert.alert("Wait!", "Please enter a name for the board.");
+      notify("Wait!", "Please enter a name for the board.");
       return;
     }
 
@@ -322,18 +326,18 @@ export default function App() {
       const result = await response.json();
 
       if (response.status === 409) {
-        Alert.alert("Name Taken", "Someone already used that name today! Try another.");
+        notify("Name Taken", "Someone already used that name today! Try another.");
       } else if (response.ok) {
         setHasSubmitted(true);
         // Save name for next time
         await AsyncStorage.setItem('last_frog_name', leaderboardName);
-        Alert.alert("Success!", "You're on the board.");
+        notify("Success!", "You're on the board.");
       } else {
         // Handle other server errors (400, 500, etc.)
         throw new Error(result.error || "Submission failed");
       }
     } catch (error) {
-      Alert.alert("Error", "Could not connect to the leaderboard.");
+      notify("Error", "Could not connect to the leaderboard.");
     } finally {
       setIsSubmitting(false);
     }
@@ -376,11 +380,7 @@ export default function App() {
 
   const copyToClipboard = async () => {
     await Clipboard.setStringAsync(getStatsString());
-    if (Platform.OS === 'web') {
-      alert("Score copied to clipboard!");
-    } else {
-      Alert.alert("Copied!", "Your score has been copied to the clipboard.");
-    }
+    notify("Copied!", "Your score has been copied to the clipboard.");
   };
 
   const handleShare = async () => {
@@ -451,7 +451,7 @@ export default function App() {
       if (supported) {
         Linking.openURL(url);
       } else {
-        Alert.alert("Error", "Could not open definition");
+        notify("Error", "Could not open definition");
       }
     });
   };
