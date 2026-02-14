@@ -19,6 +19,7 @@ import {
   useWindowDimensions
 } from 'react-native';
 
+import { CURRENT_VERSION } from '../../constants/version';
 import { DICTIONARY, TARGET_WORDS } from '../../constants/words';
 
 const KEYBOARD_ROWS = [
@@ -169,6 +170,35 @@ export default function App() {
         console.warn(e);
       }
     }
+
+    async function versionCheck() {
+      const VERSION_CHECK_URL = 'https://wordfrog.superjeffc.com/version.json';
+
+      try {
+        // Add a timestamp to the URL to bypass any ISP or CDN caching
+        const response = await fetch(`${VERSION_CHECK_URL}?t=${Date.now()}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+        });
+
+        const data = await response.json();
+
+        if (data.version > CURRENT_VERSION) {
+          if (Platform.OS === 'web') {
+            alert("Update Available!\n\nClear your browser cache and refresh the page to receive the latest version.");
+          } else {
+            Alert.alert("Update Available! Download the latest version from the Play Store!");
+          }
+        }
+      } catch (error) {
+        console.error("Version check failed:", error);
+      }
+    }
+
+    versionCheck();
     prepare();
   }, []);
 

@@ -2,6 +2,12 @@
 
 Word guessing game
 
+# How to update expo dependencies
+```
+nvm use
+npx expo install --fix
+```
+
 # How to test locally
 ```
 nvm use
