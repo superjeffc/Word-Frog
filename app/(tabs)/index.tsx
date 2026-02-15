@@ -19,8 +19,9 @@ import {
   useWindowDimensions
 } from 'react-native';
 
+import { DICTIONARY } from '../../constants/dictionary';
 import { CURRENT_VERSION } from '../../constants/version';
-import { DICTIONARY, TARGET_WORDS } from '../../constants/words';
+import { TARGET_WORDS } from '../../constants/words';
 
 const KEYBOARD_ROWS = [
   ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
