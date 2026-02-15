@@ -21,7 +21,6 @@ import {
 
 import { DICTIONARY } from '../../constants/dictionary';
 import { CURRENT_VERSION } from '../../constants/version';
-import { TARGET_WORDS } from '../../constants/words';
 
 const KEYBOARD_ROWS = [
   ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -29,26 +28,69 @@ const KEYBOARD_ROWS = [
   ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "⌫"]
 ];
 
-const getWordOfTheDay = () => {
-  const now = new Date();
+const getWordOfTheDay = async () => {
+  // Get the user's local date in YYYY-MM-DD format (e.g., "2026-01-17")
+  const localDate = new Date().toLocaleDateString('en-CA');
+  const API_URL = 'https://wordfrogwordoftheday.superjeffc.com'
+  const endpoint = `/getword?date=${localDate}`
 
-  // 1. Create a stable seed for the day (e.g., 20251219)
-  const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`);
 
-  // 2. Use an LCG formula to scramble the seed
-  const scrambled = (seed * 1664525 + 1013904223) % 4294967296;
+    if (!response.ok) {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
 
-  // 3. Map that large scrambled number to the array length
-  const index = scrambled % TARGET_WORDS.length;
+    const json = await response.json();
 
-  return TARGET_WORDS[index].toUpperCase();
+    return json.word.toUpperCase();
+  } catch (error) {
+    console.error("Error fetching word of the day:", error);
+  }
 };
 
 export default function App() {
   const { width } = useWindowDimensions();
 
+  // 1. Create a state to hold the word (initially null or empty)
+  const [TARGET_WORD, setTargetWord] = useState("");
+  const [appIsReady, setAppIsReady] = useState(false);
+  const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
+  const [revealedPrefix, setRevealedPrefix] = useState("");
+  const [userInput, setUserInput] = useState('');
+  const [usedWords, setUsedWords] = useState([]);
+  const [turnCount, setTurnCount] = useState(0);
+  const [endTime, setEndTime] = useState(null);
+  const [message, setMessage] = useState("");
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [showRules, setShowRules] = useState(false);
+  const [startTime, setStartTime] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [leaderboardName, setLeaderboardName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  // 2. Use useEffect to call your async function once on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    getWordOfTheDay().then(word => {
+      if (isMounted && word) {
+        setTargetWord(word);
+        setRevealedPrefix(word[0]);
+        setMessage(`"${word.length} letters. Starts with "${word[0]}"`);
+        setAppIsReady(true);
+      }
+    }).catch(err => {
+      // Even if it fails, set ready to true so we can
+      // show an error message instead of a spinner
+      setAppIsReady(true);
+    });
+
+    return () => { isMounted = false; };
+  }, []);
+
   // Calculate how much space is available for the whole row
-  const TARGET_WORD = React.useMemo(() => getWordOfTheDay(), []);
   const AVAILABLE_WIDTH = width - 40; // Total screen width minus side padding
   const TILE_SPACE = AVAILABLE_WIDTH / TARGET_WORD.length;
 
@@ -147,23 +189,6 @@ export default function App() {
       };
     }
   }, []);
-  // ----------------------------------
-
-  const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
-  const [appIsReady, setAppIsReady] = useState(false);
-  const [revealedPrefix, setRevealedPrefix] = useState(TARGET_WORD[0]);
-  const [userInput, setUserInput] = useState('');
-  const [usedWords, setUsedWords] = useState([]);
-  const [turnCount, setTurnCount] = useState(0);
-  const [endTime, setEndTime] = useState(null);
-  const [message, setMessage] = useState(`"${TARGET_WORD.length} letters. Starts with "${TARGET_WORD[0]}"`);
-  const [isGameOver, setIsGameOver] = useState(false);
-  const [showRules, setShowRules] = useState(false);
-  const [startTime, setStartTime] = useState(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [leaderboardName, setLeaderboardName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const notify = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -256,7 +281,7 @@ export default function App() {
 
   // 2. Animate the frog whenever the revealedPrefix changes
   useEffect(() => {
-    if (revealedPrefix.length > 1) {
+    if (revealedPrefix && revealedPrefix.length > 1) {
       const nextIndex = revealedPrefix.length - 1;
       Animated.spring(frogX, {
         toValue: nextIndex * DYNAMIC_TILE_SIZE,

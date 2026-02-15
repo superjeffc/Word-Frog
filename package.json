@@ -1,9 +1,9 @@
 {
   "name": "wordfrog",
   "main": "expo-router/entry",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --tunnel",
     "predeploy": "npx expo export -p web  && echo 'wordfrog.superjeffc.com' > dist/CNAME && touch dist/.nojekyll && echo \"!**/node_modules\" > dist/.gitignore",
     "deploy": "npx gh-pages -d dist  --src \"**/*\" --dotfiles",
     "reset-project": "node ./scripts/reset-project.js",
