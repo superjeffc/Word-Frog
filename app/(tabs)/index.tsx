@@ -69,7 +69,10 @@ export default function App() {
         { property: 'og:description', content: 'A daily word guessing game that challenges your vocabulary.' },
         { property: 'og:image', content: 'https://wordfrog.superjeffc.com/favicon.ico' },
         { property: 'og:url', content: 'https://wordfrog.superjeffc.com' },
-        { name: 'twitter:card', content: 'summary_large_image' }
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'apple-mobile-web-app-title', content: 'Word Frog' }
       ];
 
       metaData.forEach(data => {
