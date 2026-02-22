@@ -430,7 +430,7 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: "Anonymous Frog",
+          username: id,
           score: Number(finalScore),
           date: localDate,
           uuid: id
