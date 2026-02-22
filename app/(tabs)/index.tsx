@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
+import * as Crypto from 'expo-crypto';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -69,6 +70,7 @@ export default function App() {
   const [leaderboardName, setLeaderboardName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [submissionId, setSubmissionId] = useState(null);
 
   // 2. Use useEffect to call your async function once on mount
   useEffect(() => {
@@ -348,7 +350,8 @@ export default function App() {
         body: JSON.stringify({
           username: leaderboardName,
           score: Number(finalScore),      // Send as a float/number
-          date: localDate                 // Send the local date string
+          date: localDate,                // Send the local date string
+          uuid: submissionId ?? null      // Send the same UUID generated earlier
         }),
       });
 
@@ -420,6 +423,24 @@ export default function App() {
     }
   };
 
+  const autoSubmitScore = async (finalScore, id) => {
+    try {
+      const localDate = new Date().toLocaleDateString('en-CA');
+      await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: "Anonymous Frog",
+          score: Number(finalScore),
+          date: localDate,
+          uuid: id
+        }),
+      });
+    } catch (error) {
+      console.error("Auto-submission failed", error);
+    }
+  };
+
   const handleSubmit = () => {
     if (isGameOver) return;
     const guess = userInput.trim().toUpperCase();
@@ -449,10 +470,22 @@ export default function App() {
     setTurnCount(prev => prev + 1);
     setUsedWords(prev => [guess, ...prev]);
 
-    if (guess === TARGET_WORD) {
+    if (guess === TARGET_WORD || (revealedPrefix + TARGET_WORD[revealedPrefix.length]) === TARGET_WORD) {
+      const now = new Date();
+      const newId = Crypto.randomUUID(); // Generate unique ID
+      setSubmissionId(newId); // Save to state for the final name entry
+
       setRevealedPrefix(TARGET_WORD);
-      setEndTime(new Date());
+      setEndTime(now);
       setIsGameOver(true);
+
+      // Calculate score immediately to send it
+      const seconds = Math.max(0, (now - startTime) / 1000);
+      const turnScore = Math.max(0, TARGET_WORD.length - (turnCount + 1)) * 100;
+      const timeBonus = 10 / (1 + Math.log10(seconds + 1));
+      const nowScore = (turnScore + timeBonus).toFixed(2);
+      autoSubmitScore(nowScore, newId);
+
       setMessage("BULLSEYE! 🐸🏆\n\nCome back tomorrow for another word!");
       return;
     }
