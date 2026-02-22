@@ -14,7 +14,7 @@ import {
 const API_URL = "https://wordfrogleaderboard.superjeffc.com";
 
 const LeaderboardScreen = () => {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState({ players: [], stats: { total_today: 0, total_all_time: 0 } });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [savedName, setSavedName] = useState('');
@@ -24,9 +24,7 @@ const LeaderboardScreen = () => {
     try {
       // 1. Prevent blank screen: Only show full loading if we don't have data yet.
       // Otherwise, we update silently in the background (or show a small indicator).
-      if (data.length === 0) {
-        setLoading(true);
-      }
+      if (data.players.length === 0) setLoading(true);
 
       // 2. Get the user's local date in YYYY-MM-DD format (e.g., "2026-01-17")
       const localDate = new Date().toLocaleDateString('en-CA');
@@ -34,8 +32,8 @@ const LeaderboardScreen = () => {
       // 3. Construct the endpoint based on the active view
       // We pass the localDate as a query parameter for the 'today' view
       const endpoint = view === 'today'
-        ? `/leaderboard?date=${localDate}`
-        : '/total-completed';
+        ? `/leaderboard?date=${localDate}&v=2`
+        : '/total-completed?v=2';
 
       const response = await fetch(`${API_URL}${endpoint}`);
 
@@ -47,7 +45,12 @@ const LeaderboardScreen = () => {
 
       // 4. Update state with the new data
       // By setting data after the fetch completes, the screen doesn't go blank.
-      setData(json);
+      if (json.players) {
+        setData(json);
+      } else {
+        setData({ players: json, stats: { total_today: 0, total_all_time: 0 } });
+      }
+
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
       // Optional: Alert the user if it fails
@@ -110,6 +113,23 @@ const LeaderboardScreen = () => {
     );
   };
 
+  // Total solves
+  const renderStatsHeader = () => {
+    return (
+      <View style={styles.statsHeader}>
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>{data.stats?.total_today || 0}</Text>
+          <Text style={styles.statLabel}>Solves Today</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>{data.stats?.total_all_time || 0}</Text>
+          <Text style={styles.statLabel}>All Time Solves</Text>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -136,10 +156,11 @@ const LeaderboardScreen = () => {
         <ActivityIndicator size="large" color="#2d5a27" style={styles.loader} />
       ) : (
         <FlatList
-          data={data}
+          data={data.players}
           renderItem={renderItem}
           keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={renderStatsHeader}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2d5a27" />
           }
@@ -172,6 +193,28 @@ const styles = StyleSheet.create({
   scoreText: { fontSize: 16, fontWeight: 'bold', color: '#2d5a27' },
   loader: { flex: 1, justifyContent: 'center' },
   emptyText: { textAlign: 'center', marginTop: 40, fontSize: 16, color: '#9ca3af' },
+
+  statsHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderWidth: 1,
+    borderColor: '#d1fae5',
+    // Standard shadows
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  statBox: { alignItems: 'center', flex: 1 },
+  statNumber: { fontSize: 22, fontWeight: '900', color: '#166534' },
+  statLabel: { fontSize: 10, fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' },
+  statDivider: { width: 1, height: '70%', backgroundColor: '#d1fae5' },
 });
 
 export default LeaderboardScreen;
