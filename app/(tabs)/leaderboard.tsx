@@ -33,7 +33,7 @@ const LeaderboardScreen = () => {
       // We pass the localDate as a query parameter for the 'today' view
       const endpoint = view === 'today'
         ? `/leaderboard?date=${localDate}&v=2`
-        : '/total-completed?v=2';
+        : `/total-completed?date=${localDate}&v=2`;
 
       const response = await fetch(`${API_URL}${endpoint}`);
 

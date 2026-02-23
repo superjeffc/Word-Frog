@@ -2,7 +2,7 @@
   "expo": {
     "name": "Word Frog",
     "slug": "wordfrog",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "platforms": [
       "ios",
       "android",
