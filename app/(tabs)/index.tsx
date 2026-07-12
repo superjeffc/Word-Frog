@@ -470,7 +470,7 @@ export default function App() {
     setTurnCount(prev => prev + 1);
     setUsedWords(prev => [guess, ...prev]);
 
-    if (guess === TARGET_WORD || (revealedPrefix + TARGET_WORD[revealedPrefix.length]) === TARGET_WORD) {
+    if (guess === TARGET_WORD) {
       const now = new Date();
       const newId = Crypto.randomUUID(); // Generate unique ID
       setSubmissionId(newId); // Save to state for the final name entry
@@ -490,6 +490,12 @@ export default function App() {
       return;
     }
 
+    if (revealedPrefix.length === TARGET_WORD.length - 1) {
+      setMessage(`❌ "${guess}" is not the secret word!`);
+      setUserInput('');
+      return;
+    }
+
     const nextIndex = revealedPrefix.length;
     const nextLetter = TARGET_WORD[nextIndex];
     const newPrefix = revealedPrefix + nextLetter;
@@ -497,13 +503,7 @@ export default function App() {
     setRevealedPrefix(newPrefix);
     setUserInput('');
 
-    if (newPrefix === TARGET_WORD) {
-      setEndTime(new Date());
-      setIsGameOver(true);
-      setMessage("Word Complete!");
-    } else {
-      setMessage(`✅ Nice! Next letter: ${nextLetter}`);
-    }
+    setMessage(`✅ Nice! Next letter: ${nextLetter}`);
   };
 
   const openDefinition = () => {
