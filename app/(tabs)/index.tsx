@@ -59,18 +59,20 @@ export default function App() {
   const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
   const [revealedPrefix, setRevealedPrefix] = useState("");
   const [userInput, setUserInput] = useState('');
-  const [usedWords, setUsedWords] = useState([]);
+  const [usedWords, setUsedWords] = useState<string[]>([]);
   const [turnCount, setTurnCount] = useState(0);
-  const [endTime, setEndTime] = useState(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
   const [message, setMessage] = useState("");
   const [isGameOver, setIsGameOver] = useState(false);
   const [showRules, setShowRules] = useState(false);
-  const [startTime, setStartTime] = useState(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [leaderboardName, setLeaderboardName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [submissionId, setSubmissionId] = useState(null);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [hintCount, setHintCount] = useState(0);
+  const [showHint, setShowHint] = useState(false);
 
   // 2. Use useEffect to call your async function once on mount
   useEffect(() => {
@@ -238,7 +240,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    let interval;
+    let interval: ReturnType<typeof setInterval> | undefined;
 
     // Only start the ticking clock if the game has begun AND isn't over
     if (startTime && !isGameOver) {
@@ -247,7 +249,9 @@ export default function App() {
       }, 1000);
     }
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [startTime, isGameOver]); // Added startTime as a dependency
 
   // Use useEffect to show rules automatically for first-time users (optional)
@@ -298,10 +302,11 @@ export default function App() {
     // If the game hasn't started yet, or start time isn't set, show 0
     if (!startTime) return "0 seconds";
 
-    const end = isGameOver ? endTime : currentTime;
+    const startMs = startTime.getTime();
+    const endMs = (isGameOver && endTime) ? endTime.getTime() : currentTime.getTime();
 
     // Math.max(0, ...) ensures we never show a negative number
-    const diff = Math.max(0, Math.floor((end - startTime) / 1000));
+    const diff = Math.max(0, Math.floor((endMs - startMs) / 1000));
 
     const mins = Math.floor(diff / 60);
     const secs = diff % 60;
@@ -309,7 +314,7 @@ export default function App() {
     return mins === 0 ? `${secs} second(s)` : `${mins}m ${secs.toString().padStart(2, '0')}s`;
   };
 
-  const handleKeyPress = (key) => {
+  const handleKeyPress = (key: string) => {
     if (isGameOver) return;
 
     if (key === 'ENTER') {
@@ -384,26 +389,80 @@ export default function App() {
     loadSavedName();
   }, []);
 
-  const calculateScore = () => {
-    const seconds = Math.max(0, (endTime - startTime) / 1000);
-    const maxGuesses = TARGET_WORD.length;
+  const calculateScore = (finalTurnCount = turnCount, finalHintCount = hintCount, finalEndTime: Date | null = endTime) => {
+    const start = startTime || new Date();
+    const end = finalEndTime || endTime || new Date();
+    const seconds = Math.max(0, (end.getTime() - start.getTime()) / 1000);
+    const maxGuesses = TARGET_WORD.length || 1;
 
     // 1. Turn Score: Give a huge weight to fewer turns.
-    const turnScore = Math.max(0, maxGuesses - turnCount) * 100;
+    const turnScore = Math.max(0, maxGuesses - finalTurnCount) * 100;
 
     // 2. Time Bonus: A decaying value that is ALWAYS smaller than a single turn's value.
     const timeBonus = 10 / (1 + Math.log10(seconds + 1));
 
-    const finalScore = turnScore + timeBonus;
+    let finalScore = turnScore + timeBonus;
+
+    // Apply hint penalty if hints were used
+    if (finalHintCount > 0) {
+      // Penalty ensures that even with 1 hint, the score is always lower than a no-hint user's minimum possible score (>0)
+      const basePenalty = (maxGuesses * 100) + 100;
+      const perHintPenalty = finalHintCount * 50;
+      finalScore = finalScore - basePenalty - perHintPenalty;
+    }
+
     return finalScore.toFixed(2);
-  }
+  };
+
+  const handleGetHint = () => {
+    if (isGameOver) return;
+
+    const nextIndex = revealedPrefix.length;
+    if (nextIndex >= TARGET_WORD.length) {
+      notify("Already Completed", "All letters have been revealed!");
+      return;
+    }
+
+    const nextLetter = TARGET_WORD[nextIndex];
+
+    if (showHint) {
+      notify("Hint Already Active", `The next letter is "${nextLetter}". It is shown in the word grid.`);
+      return;
+    }
+
+    const performGetHint = () => {
+      setHintCount(prev => prev + 1);
+      setShowHint(true);
+      setMessage(`💡 Hint: The next letter is "${nextLetter}"`);
+    };
+
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm(
+        "Use a Hint?\n\nThis will reveal the next letter but will apply a final score penalty so that you'll rank below players who didn't use hints. Continue?"
+      );
+      if (confirm) {
+        performGetHint();
+      }
+    } else {
+      Alert.alert(
+        "Use a Hint?",
+        "This will reveal the next letter but will apply a final score penalty so that you'll rank below players who didn't use hints. Continue?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Yes, get hint", onPress: performGetHint }
+        ]
+      );
+    }
+  };
 
   const getStatsString = () => {
     let today = new Date().toLocaleDateString('en-CA');
+    const hintsUsedStr = hintCount > 0 ? `💡 Hints used: ${hintCount}\n` : '';
 
     return (
       `🐸 #WordFrog on ${today}\n` +
       `🔄 Solved in ${turnCount} turns\n` +
+      hintsUsedStr +
       `⏱️ Time: ${getTimeElapsed()}\n` +
       `🏆 Score: ${calculateScore()}\n\n` +
       `Play here: wordfrog.superjeffc.com`
@@ -423,7 +482,7 @@ export default function App() {
     }
   };
 
-  const autoSubmitScore = async (finalScore, id) => {
+  const autoSubmitScore = async (finalScore: string | number, id: string) => {
     try {
       const localDate = new Date().toLocaleDateString('en-CA');
       await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
@@ -478,12 +537,10 @@ export default function App() {
       setRevealedPrefix(TARGET_WORD);
       setEndTime(now);
       setIsGameOver(true);
+      setShowHint(false);
 
       // Calculate score immediately to send it
-      const seconds = Math.max(0, (now - startTime) / 1000);
-      const turnScore = Math.max(0, TARGET_WORD.length - (turnCount + 1)) * 100;
-      const timeBonus = 10 / (1 + Math.log10(seconds + 1));
-      const nowScore = (turnScore + timeBonus).toFixed(2);
+      const nowScore = calculateScore(turnCount + 1, hintCount, now);
       autoSubmitScore(nowScore, newId);
 
       setMessage("BULLSEYE! 🐸🏆\n\nCome back tomorrow for another word!");
@@ -502,6 +559,7 @@ export default function App() {
 
     setRevealedPrefix(newPrefix);
     setUserInput('');
+    setShowHint(false);
 
     setMessage(`✅ Nice! Next letter: ${nextLetter}`);
   };
@@ -566,24 +624,33 @@ export default function App() {
             </Animated.View>
 
             <View style={styles.wordContainer}>
-              {TARGET_WORD.split('').map((letter, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.letterBox,
-                    {
-                      width: BOX_SIZE,
-                      height: BOX_SIZE * 1.3,
-                      marginHorizontal: 4 // This creates the 8px total gap between tiles
-                    },
-                    index < revealedPrefix.length && styles.revealedBox
-                  ]}
-                >
-                  <Text style={[styles.letterText, { fontSize: DYNAMIC_FONT_SIZE }]}>
-                    {index < revealedPrefix.length ? letter : ''}
-                  </Text>
-                </View>
-              ))}
+              {TARGET_WORD.split('').map((letter, index) => {
+                const isRevealed = index < revealedPrefix.length;
+                const isHint = showHint && index === revealedPrefix.length;
+                return (
+                  <View
+                    key={index}
+                    style={[
+                      styles.letterBox,
+                      {
+                        width: BOX_SIZE,
+                        height: BOX_SIZE * 1.3,
+                        marginHorizontal: 4 // This creates the 8px total gap between tiles
+                      },
+                      isRevealed && styles.revealedBox,
+                      isHint && styles.hintBox
+                    ]}
+                  >
+                    <Text style={[
+                      styles.letterText,
+                      { fontSize: DYNAMIC_FONT_SIZE },
+                      isHint && styles.hintLetterText
+                    ]}>
+                      {isRevealed || isHint ? letter : ''}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
         </View>
@@ -598,6 +665,12 @@ export default function App() {
               <Text style={styles.finalStats}>
                 Your Score: {calculateScore()}
               </Text>
+
+              {hintCount > 0 && (
+                <Text style={styles.hintPenaltyText}>
+                  ⚠️ Score includes a penalty for using {hintCount} hint{hintCount > 1 ? 's' : ''}.
+                </Text>
+              )}
 
               {!hasSubmitted ? (
                 <View style={{ width: '100%', alignItems: 'center' }}>
@@ -643,6 +716,15 @@ export default function App() {
                   {userInput || "TAP LETTERS..."}
                 </Text>
               </View>
+
+              {/* Hint Button */}
+              <TouchableOpacity
+                style={styles.hintBtn}
+                onPress={handleGetHint}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.hintBtnText}>💡 GET HINT</Text>
+              </TouchableOpacity>
 
               {/* On-Screen Keyboard */}
               <View style={styles.keyboardContainer}>
@@ -725,6 +807,11 @@ export default function App() {
                 Think you know the Secret Word? Type it in at any time to <Text style={styles.bold}>win instantly</Text>!
               </Text>
 
+              <Text style={styles.ruleItem}>
+                <Text style={styles.bold}>4. Need a Hand?: </Text>
+                Use the <Text style={styles.bold}>💡 Hint</Text> button to see the next letter without submitting a word. Beware: this comes with a <Text style={styles.bold}>final score penalty</Text>!
+              </Text>
+
               <View style={styles.tipBox}>
                 <Text style={styles.tipText}>
                   💡 <Text style={styles.bold}>Pro Tip:</Text> Every word you guess counts as a turn. Be strategic to keep your turns low!
@@ -783,6 +870,42 @@ const styles = StyleSheet.create({
   shareBtn: { backgroundColor: '#ffa000', paddingVertical: 15, paddingHorizontal: 45, borderRadius: 30 },
   copyLink: { marginTop: 15 },
   copyLinkText: { color: '#558b2f', textDecorationLine: 'underline', fontWeight: '600' },
+  hintBtn: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#f59e0b',
+    borderWidth: 2,
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    marginBottom: 20,
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  hintBtnText: {
+    color: '#d97706',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
+  hintBox: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#f59e0b',
+    borderStyle: 'dashed',
+    borderWidth: 2.5,
+  },
+  hintLetterText: {
+    color: '#d97706',
+  },
+  hintPenaltyText: {
+    fontSize: 14,
+    color: '#d32f2f',
+    fontWeight: '600',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
   historyContainer: { marginTop: 30, alignItems: 'center', paddingHorizontal: 20 },
   historyTitle: { fontSize: 13, fontWeight: 'bold', color: '#558b2f', textTransform: 'uppercase', marginBottom: 4 },
   historyText: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20 },
