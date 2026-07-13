@@ -73,6 +73,8 @@ export default function App() {
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [hintCount, setHintCount] = useState(0);
   const [showHint, setShowHint] = useState(false);
+  const [savedName, setSavedName] = useState("");
+  const [alreadySolved, setAlreadySolved] = useState(false);
 
   // 2. Use useEffect to call your async function once on mount
   useEffect(() => {
@@ -254,10 +256,53 @@ export default function App() {
     };
   }, [startTime, isGameOver]); // Added startTime as a dependency
 
-  // Use useEffect to show rules automatically for first-time users (optional)
+  const checkIfAlreadySolved = async (nameToCheck: string) => {
+    if (!nameToCheck.trim()) {
+      setAlreadySolved(false);
+      return;
+    }
+
+    try {
+      const localDate = new Date().toLocaleDateString('en-CA');
+      const response = await fetch(`https://wordfrogleaderboard.superjeffc.com/leaderboard?date=${localDate}&v=2`);
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      const json = await response.json();
+      const players = json.players || (Array.isArray(json) ? json : []);
+
+      const found = players.some(
+        (player: any) => player.username && player.username.trim().toLowerCase() === nameToCheck.trim().toLowerCase()
+      );
+
+      setAlreadySolved(found);
+    } catch (error) {
+      console.error("Error checking solved status:", error);
+      setAlreadySolved(false);
+    }
+  };
+
+  const handleNotYou = async () => {
+    await AsyncStorage.removeItem('last_frog_name');
+    setSavedName("");
+    setLeaderboardName("");
+    setAlreadySolved(false);
+  };
+
+  // Load saved name and check if solved on mount
   useEffect(() => {
-    // Logic to check if user has seen rules can go here
-    setShowRules(true);
+    const initNameAndRules = async () => {
+      const saved = await AsyncStorage.getItem('last_frog_name');
+      if (saved) {
+        setSavedName(saved);
+        setLeaderboardName(saved);
+        await checkIfAlreadySolved(saved);
+      } else {
+        // Only show rules for first-time users (no saved name)
+        setShowRules(true);
+      }
+    };
+    initNameAndRules();
   }, []);
 
   // 1. Setup the Animation Value
@@ -334,6 +379,42 @@ export default function App() {
     setCurrentTime(now);    // Sync the current tick immediately
   };
 
+  const autoSubmitWithSavedName = async (name: string, finalScore: string | number, id: string) => {
+    setIsSubmitting(true);
+    try {
+      const localDate = new Date().toLocaleDateString('en-CA');
+      const response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: name,
+          score: Number(finalScore),
+          date: localDate,
+          uuid: id
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.status === 409) {
+        notify("Name Taken", "Your saved name was already used today! Please enter a new one.");
+        setHasSubmitted(false);
+        setSavedName('');
+        setLeaderboardName('');
+        await AsyncStorage.removeItem('last_frog_name');
+      } else if (response.ok) {
+        setHasSubmitted(true);
+        notify("Success!", "Your score has been auto-submitted!");
+      } else {
+        throw new Error(result.error || "Submission failed");
+      }
+    } catch (error) {
+      notify("Error", "Could not auto-submit your score to the leaderboard.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const submitToLeaderboard = async () => {
     // 1. Validate that the user actually entered a name
     if (!leaderboardName.trim()) {
@@ -368,6 +449,7 @@ export default function App() {
         setHasSubmitted(true);
         // Save name for next time
         await AsyncStorage.setItem('last_frog_name', leaderboardName);
+        setSavedName(leaderboardName);
         notify("Success!", "You're on the board.");
       } else {
         // Handle other server errors (400, 500, etc.)
@@ -379,15 +461,6 @@ export default function App() {
       setIsSubmitting(false);
     }
   };
-
-  // Also add a useEffect to pre-fill the name from AsyncStorage
-  useEffect(() => {
-    const loadSavedName = async () => {
-      const saved = await AsyncStorage.getItem('last_frog_name');
-      if (saved) setLeaderboardName(saved);
-    };
-    loadSavedName();
-  }, []);
 
   const calculateScore = (finalTurnCount = turnCount, finalHintCount = hintCount, finalEndTime: Date | null = endTime) => {
     const start = startTime || new Date();
@@ -541,7 +614,12 @@ export default function App() {
 
       // Calculate score immediately to send it
       const nowScore = calculateScore(turnCount + 1, hintCount, now);
-      autoSubmitScore(nowScore, newId);
+      
+      if (savedName) {
+        autoSubmitWithSavedName(savedName, nowScore, newId);
+      } else {
+        autoSubmitScore(nowScore, newId);
+      }
 
       setMessage("BULLSEYE! 🐸🏆\n\nCome back tomorrow for another word!");
       return;
@@ -588,6 +666,14 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
+      {savedName ? (
+        <View style={styles.welcomeContainer}>
+          <Text style={styles.welcomeText}>Hello, {savedName}</Text>
+          <TouchableOpacity onPress={handleNotYou} style={styles.notYouBtn}>
+            <Text style={styles.notYouText}>Not you?</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View style={styles.titleRow}>
@@ -600,169 +686,179 @@ export default function App() {
           <Text style={styles.stats}>Turn: {isGameOver ? turnCount : turnCount + 1} | {getTimeElapsed()}</Text>
         </View>
 
-        <View style={styles.gameArea}>
-          {/* This wrapper is exactly the width of the word grid */}
-          <View style={{ width: TARGET_WORD.length * DYNAMIC_TILE_SIZE, position: 'relative' }}>
-
-            <Animated.View
-              style={[
-                styles.frogContainer,
-                {
-                  width: DYNAMIC_TILE_SIZE,
-                  left: 0, // Now '0' is the exact start of the first box
-                  transform: [
-                    { translateX: frogX },
-                    { translateY: frogY }
-                  ]
-                }
-              ]}
-            >
-              <Image
-                source={require('../../assets/images/frog.webp')}
-                style={{ width: BOX_SIZE, height: BOX_SIZE, resizeMode: 'contain' }}
-              />
-            </Animated.View>
-
-            <View style={styles.wordContainer}>
-              {TARGET_WORD.split('').map((letter, index) => {
-                const isRevealed = index < revealedPrefix.length;
-                const isHint = showHint && index === revealedPrefix.length;
-                return (
-                  <View
-                    key={index}
-                    style={[
-                      styles.letterBox,
-                      {
-                        width: BOX_SIZE,
-                        height: BOX_SIZE * 1.3,
-                        marginHorizontal: 4 // This creates the 8px total gap between tiles
-                      },
-                      isRevealed && styles.revealedBox,
-                      isHint && styles.hintBox
-                    ]}
-                  >
-                    <Text style={[
-                      styles.letterText,
-                      { fontSize: DYNAMIC_FONT_SIZE },
-                      isHint && styles.hintLetterText
-                    ]}>
-                      {isRevealed || isHint ? letter : ''}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
+        {alreadySolved ? (
+          <View style={styles.alreadySolvedContainer}>
+            <Text style={styles.alreadySolvedEmoji}>🐸🎉</Text>
+            <Text style={styles.alreadySolvedText}>{"You have already solved today's puzzle!"}</Text>
+            <Text style={styles.alreadySolvedSubtext}>Come back tomorrow for another word.</Text>
           </View>
-        </View>
+        ) : (
+          <>
+            <View style={styles.gameArea}>
+              {/* This wrapper is exactly the width of the word grid */}
+              <View style={{ width: TARGET_WORD.length * DYNAMIC_TILE_SIZE, position: 'relative' }}>
 
-        <View style={styles.inputArea}>
-          <Text style={[styles.messageText, isGameOver && styles.winMessage]}>
-            {message}
-          </Text>
+                <Animated.View
+                  style={[
+                    styles.frogContainer,
+                    {
+                      width: DYNAMIC_TILE_SIZE,
+                      left: 0, // Now '0' is the exact start of the first box
+                      transform: [
+                        { translateX: frogX },
+                        { translateY: frogY }
+                      ]
+                    }
+                  ]}
+                >
+                  <Image
+                    source={require('../../assets/images/frog.webp')}
+                    style={{ width: BOX_SIZE, height: BOX_SIZE, resizeMode: 'contain' }}
+                  />
+                </Animated.View>
 
-          {isGameOver ? (
-            <View style={styles.winBox}>
-              <Text style={styles.finalStats}>
-                Your Score: {calculateScore()}
+                <View style={styles.wordContainer}>
+                  {TARGET_WORD.split('').map((letter, index) => {
+                    const isRevealed = index < revealedPrefix.length;
+                    const isHint = showHint && index === revealedPrefix.length;
+                    return (
+                      <View
+                        key={index}
+                        style={[
+                          styles.letterBox,
+                          {
+                            width: BOX_SIZE,
+                            height: BOX_SIZE * 1.3,
+                            marginHorizontal: 4 // This creates the 8px total gap between tiles
+                          },
+                          isRevealed && styles.revealedBox,
+                          isHint && styles.hintBox
+                        ]}
+                      >
+                        <Text style={[
+                          styles.letterText,
+                          { fontSize: DYNAMIC_FONT_SIZE },
+                          isHint && styles.hintLetterText
+                        ]}>
+                          {isRevealed || isHint ? letter : ''}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.inputArea}>
+              <Text style={[styles.messageText, isGameOver && styles.winMessage]}>
+                {message}
               </Text>
 
-              {hintCount > 0 && (
-                <Text style={styles.hintPenaltyText}>
-                  ⚠️ Score includes a penalty for using {hintCount} hint{hintCount > 1 ? 's' : ''}.
-                </Text>
-              )}
+              {isGameOver ? (
+                <View style={styles.winBox}>
+                  <Text style={styles.finalStats}>
+                    Your Score: {calculateScore()}
+                  </Text>
 
-              {!hasSubmitted ? (
-                <View style={{ width: '100%', alignItems: 'center' }}>
-                  <TextInput
-                    style={styles.leaderboardInput}
-                    placeholder="Enter Name for Leaderboard"
-                    value={leaderboardName}
-                    onChangeText={setLeaderboardName}
-                    maxLength={15}
-                  />
-                  <TouchableOpacity
-                    style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
-                    onPress={submitToLeaderboard}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.buttonText}>SUBMIT SCORE 🐸</Text>
-                    )}
+                  {hintCount > 0 && (
+                    <Text style={styles.hintPenaltyText}>
+                      ⚠️ Score includes a penalty for using {hintCount} hint{hintCount > 1 ? 's' : ''}.
+                    </Text>
+                  )}
+
+                  {!hasSubmitted ? (
+                    <View style={{ width: '100%', alignItems: 'center' }}>
+                      <TextInput
+                        style={styles.leaderboardInput}
+                        placeholder="Enter Name for Leaderboard"
+                        value={leaderboardName}
+                        onChangeText={setLeaderboardName}
+                        maxLength={15}
+                      />
+                      <TouchableOpacity
+                        style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
+                        onPress={submitToLeaderboard}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Text style={styles.buttonText}>SUBMIT SCORE 🐸</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <Text style={styles.submittedText}>✓ Score Submitted!</Text>
+                  )}
+
+                  {/* --- DEFINITION BUTTON --- */}
+                  <TouchableOpacity style={styles.definitionBtn} onPress={openDefinition}>
+                    <Text style={styles.definitionText}>📖 See Definition</Text>
+                  </TouchableOpacity>
+                  {/* ------------------------- */}
+
+                  <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+                    <Text style={styles.buttonText}>SHARE SCORE</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <Text style={styles.submittedText}>✓ Score Submitted!</Text>
-              )}
+                <>
 
-              {/* --- DEFINITION BUTTON --- */}
-              <TouchableOpacity style={styles.definitionBtn} onPress={openDefinition}>
-                <Text style={styles.definitionText}>📖 See Definition</Text>
-              </TouchableOpacity>
-              {/* ------------------------- */}
-
-              <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-                <Text style={styles.buttonText}>SHARE SCORE</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-
-              {/* Custom Input Display */}
-              <View style={styles.customInputDisplay}>
-                <Text style={styles.customInputText}>
-                  {userInput || "TAP LETTERS..."}
-                </Text>
-              </View>
-
-              {/* Hint Button */}
-              <TouchableOpacity
-                style={styles.hintBtn}
-                onPress={handleGetHint}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.hintBtnText}>💡 GET HINT</Text>
-              </TouchableOpacity>
-
-              {/* On-Screen Keyboard */}
-              <View style={styles.keyboardContainer}>
-                {KEYBOARD_ROWS.map((row, rowIndex) => (
-                  <View key={rowIndex} style={styles.keyboardRow}>
-                    {row.map((key) => {
-                      // Style tweak for special keys
-                      const isSpecial = key === 'ENTER' || key === '⌫';
-                      return (
-                        <TouchableOpacity
-                          key={key}
-                          style={[
-                            styles.keyButton,
-                            isSpecial && styles.specialKey
-                          ]}
-                          onPress={() => handleKeyPress(key)}
-                        >
-                          <Text style={[
-                            styles.keyText,
-                            isSpecial && styles.specialKeyText
-                          ]}>
-                            {key}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
+                  {/* Custom Input Display */}
+                  <View style={styles.customInputDisplay}>
+                    <Text style={styles.customInputText}>
+                      {userInput || "TAP LETTERS..."}
+                    </Text>
                   </View>
-                ))}
-              </View>
-            </>
-          )}
-        </View>
 
-        {!isGameOver && usedWords.length > 0 && (
-          <View style={styles.historyContainer}>
-            <Text style={styles.historyTitle}>Words Used:</Text>
-            <Text style={styles.historyText}>{usedWords.join(', ')}</Text>
-          </View>
+                  {/* Hint Button */}
+                  <TouchableOpacity
+                    style={styles.hintBtn}
+                    onPress={handleGetHint}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.hintBtnText}>💡 GET HINT</Text>
+                  </TouchableOpacity>
+
+                  {/* On-Screen Keyboard */}
+                  <View style={styles.keyboardContainer}>
+                    {KEYBOARD_ROWS.map((row, rowIndex) => (
+                      <View key={rowIndex} style={styles.keyboardRow}>
+                        {row.map((key) => {
+                          // Style tweak for special keys
+                          const isSpecial = key === 'ENTER' || key === '⌫';
+                          return (
+                            <TouchableOpacity
+                              key={key}
+                              style={[
+                                styles.keyButton,
+                                isSpecial && styles.specialKey
+                              ]}
+                              onPress={() => handleKeyPress(key)}
+                            >
+                              <Text style={[
+                                styles.keyText,
+                                isSpecial && styles.specialKeyText
+                              ]}>
+                                {key}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
+
+            {!isGameOver && usedWords.length > 0 && (
+              <View style={styles.historyContainer}>
+                <Text style={styles.historyTitle}>Words Used:</Text>
+                <Text style={styles.historyText}>{usedWords.join(', ')}</Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -823,7 +919,7 @@ export default function App() {
               style={styles.closeButton}
               onPress={startLeapFrog}
             >
-              <Text style={styles.buttonText}>LET'S JUMP IN!</Text>
+              <Text style={styles.buttonText}>{"LET'S JUMP IN!"}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1139,5 +1235,62 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
     marginBottom: 20,
+  },
+  welcomeContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: 20,
+    alignItems: 'flex-end',
+    zIndex: 100,
+    backgroundColor: 'rgba(241, 248, 233, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  welcomeText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+  },
+  notYouBtn: {
+    marginTop: 2,
+  },
+  notYouText: {
+    fontSize: 11,
+    color: '#d32f2f',
+    textDecorationLine: 'underline',
+    fontWeight: '600',
+  },
+  alreadySolvedContainer: {
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#4caf50',
+    width: '90%',
+    marginVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  alreadySolvedEmoji: {
+    fontSize: 48,
+    marginBottom: 15,
+  },
+  alreadySolvedText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  alreadySolvedSubtext: {
+    fontSize: 15,
+    color: '#558b2f',
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });
