@@ -678,10 +678,6 @@ export default function App() {
         <View style={styles.header}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>WORD FROG</Text>
-            <Image
-              source={require('../../assets/images/froghead.webp')}
-              style={styles.headerFrog}
-            />
           </View>
           <Text style={styles.stats}>Turn: {isGameOver ? turnCount : turnCount + 1} | {getTimeElapsed()}</Text>
         </View>
