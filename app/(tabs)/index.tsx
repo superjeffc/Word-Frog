@@ -1234,7 +1234,7 @@ const styles = StyleSheet.create({
   },
   welcomeContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
+    top: Platform.OS === 'ios' ? 45 : 20,
     right: 20,
     alignItems: 'flex-end',
     zIndex: 100,
