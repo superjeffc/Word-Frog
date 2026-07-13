@@ -80,13 +80,13 @@ const LeaderboardScreen = () => {
     fetchLeaderboard();
   }, [view]);
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const renderItem = ({ item, index }) => {
+  const renderItem = ({ item, index }: { item: any; index: number }) => {
     const isMe = item.username === savedName;
 
     // Handle the case where score might be missing or 0
