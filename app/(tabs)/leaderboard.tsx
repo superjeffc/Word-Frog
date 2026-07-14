@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -123,7 +122,7 @@ const LeaderboardScreen = () => {
           disabled={loading || refreshing}
           activeOpacity={0.6}
         >
-          <Ionicons name="refresh" size={24} color="#166534" />
+          <Text style={styles.refreshIcon}>↻</Text>
         </TouchableOpacity>
       </View>
 
@@ -165,9 +164,16 @@ const styles = StyleSheet.create({
   refreshBtn: {
     position: 'absolute',
     right: 20,
-    top: 20,
+    top: Platform.OS === 'ios' ? 16 : 14,
     justifyContent: 'center',
     alignItems: 'center',
+    width: 40,
+    height: 40,
+  },
+  refreshIcon: {
+    fontSize: 26,
+    color: '#166534',
+    fontWeight: 'bold',
   },
   listContent: { padding: 15 },
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 15, borderRadius: 12, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
