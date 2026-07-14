@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -19,6 +19,8 @@ const LeaderboardScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [savedName, setSavedName] = useState('');
+  const [showRefreshedText, setShowRefreshedText] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchLeaderboard = useCallback(async () => {
     try {
@@ -41,6 +43,14 @@ const LeaderboardScreen = () => {
         setData({ players: json, stats: { total_today: 0, total_all_time: 0 } });
       }
 
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      setShowRefreshedText(true);
+      timeoutRef.current = setTimeout(() => {
+        setShowRefreshedText(false);
+      }, 1500);
+
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
     } finally {
@@ -48,6 +58,14 @@ const LeaderboardScreen = () => {
       setRefreshing(false);
     }
   }, [data.players.length]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const loadStoredName = async () => {
     try {
@@ -122,7 +140,11 @@ const LeaderboardScreen = () => {
           disabled={loading || refreshing}
           activeOpacity={0.6}
         >
-          <Text style={styles.refreshIcon}>↻</Text>
+          {showRefreshedText ? (
+            <Text style={styles.refreshedText}>Refreshed!</Text>
+          ) : (
+            <Text style={styles.refreshIcon}>↻</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -167,11 +189,16 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 16 : 14,
     justifyContent: 'center',
     alignItems: 'center',
-    width: 40,
+    minWidth: 40,
     height: 40,
   },
   refreshIcon: {
     fontSize: 26,
+    color: '#166534',
+    fontWeight: 'bold',
+  },
+  refreshedText: {
+    fontSize: 12,
     color: '#166534',
     fontWeight: 'bold',
   },
