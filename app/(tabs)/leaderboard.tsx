@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -7,6 +9,7 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View
 } from 'react-native';
 
@@ -56,10 +59,12 @@ const LeaderboardScreen = () => {
     }
   };
 
-  useEffect(() => {
-    loadStoredName();
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+  useFocusEffect(
+    useCallback(() => {
+      loadStoredName();
+      fetchLeaderboard();
+    }, [fetchLeaderboard])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -112,6 +117,14 @@ const LeaderboardScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>🏆 Leaderboard</Text>
+        <TouchableOpacity
+          onPress={onRefresh}
+          style={[styles.refreshBtn, (loading || refreshing) && { opacity: 0.5 }]}
+          disabled={loading || refreshing}
+          activeOpacity={0.6}
+        >
+          <Ionicons name="refresh" size={24} color="#166534" />
+        </TouchableOpacity>
       </View>
 
       {loading && !refreshing ? (
@@ -137,8 +150,25 @@ const LeaderboardScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f0fdf4' },
-  header: { padding: 20, alignItems: 'center', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#d1fae5' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#d1fae5',
+    position: 'relative',
+  },
   title: { fontSize: Platform.OS === 'android' ? 20 : 24, fontWeight: '900', color: '#166534' },
+  refreshBtn: {
+    position: 'absolute',
+    right: 20,
+    top: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   listContent: { padding: 15 },
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 15, borderRadius: 12, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
   myRow: { backgroundColor: '#dcfce7', borderColor: '#22c55e', borderWidth: 1 },
