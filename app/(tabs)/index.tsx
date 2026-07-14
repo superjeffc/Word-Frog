@@ -20,7 +20,6 @@ import {
   useWindowDimensions
 } from 'react-native';
 
-import { DICTIONARY } from '../../constants/dictionary';
 import { CURRENT_VERSION } from '../../constants/version';
 
 const KEYBOARD_ROWS = [
@@ -56,7 +55,7 @@ export default function App() {
   // 1. Create a state to hold the word (initially null or empty)
   const [TARGET_WORD, setTargetWord] = useState("");
   const [appIsReady, setAppIsReady] = useState(false);
-  const DICTIONARY_SET = React.useMemo(() => new Set(DICTIONARY), []);
+  const [isValidating, setIsValidating] = useState(false);
   const [revealedPrefix, setRevealedPrefix] = useState("");
   const [userInput, setUserInput] = useState('');
   const [usedWords, setUsedWords] = useState<string[]>([]);
@@ -610,8 +609,8 @@ export default function App() {
     }
   };
 
-  const handleSubmit = () => {
-    if (isGameOver) return;
+  const handleSubmit = async () => {
+    if (isGameOver || isValidating) return;
     const guess = userInput.trim().toUpperCase();
 
     if (!guess) {
@@ -630,11 +629,34 @@ export default function App() {
       return;
     }
 
-    if (!DICTIONARY_SET.has(guess) && guess !== TARGET_WORD) {
-      setMessage(`❌ "${guess}" isn't in our dictionary!`);
-      setUserInput('');
-      return;
+    setIsValidating(true);
+    if (guess !== TARGET_WORD) {
+      try {
+        const response = await fetch("https://wordfrogdictionary.superjeffc.com/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ word: guess })
+        });
+        
+        if (!response.ok) {
+          throw new Error("Validation request failed");
+        }
+        
+        const data = await response.json();
+        if (!data.valid) {
+          setMessage(`❌ "${guess}" isn't in our dictionary!`);
+          setUserInput('');
+          setIsValidating(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to validate word:", error);
+        setMessage("⚠️ Connection error. Could not verify word.");
+        setIsValidating(false);
+        return;
+      }
     }
+    setIsValidating(false);
 
     setTurnCount(prev => prev + 1);
     setUsedWords(prev => [guess, ...prev]);
