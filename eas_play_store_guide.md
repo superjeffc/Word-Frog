@@ -13,7 +13,7 @@ Ensure you have the EAS CLI tool installed globally and are logged into your Exp
 npm install -g eas-cli
 
 # Log in to your Expo account
-eas login
+npx eas login --no-browser
 ```
 
 ---
