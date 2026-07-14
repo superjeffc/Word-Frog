@@ -75,6 +75,8 @@ export default function App() {
   const [showHint, setShowHint] = useState(false);
   const [savedName, setSavedName] = useState("");
   const [alreadySolved, setAlreadySolved] = useState(false);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [tempName, setTempName] = useState("");
 
   // 2. Use useEffect to call your async function once on mount
   useEffect(() => {
@@ -283,10 +285,45 @@ export default function App() {
   };
 
   const handleNotYou = async () => {
-    await AsyncStorage.removeItem('last_frog_name');
-    setSavedName("");
-    setLeaderboardName("");
-    setAlreadySolved(false);
+    const proceed = async () => {
+      await AsyncStorage.removeItem('last_frog_name');
+      setSavedName("");
+      setLeaderboardName("");
+      setAlreadySolved(false);
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm("Are you sure you want to change your name? This will clear your saved name from this device.")) {
+        await proceed();
+      }
+    } else {
+      Alert.alert(
+        "Change Name",
+        "Are you sure you want to change your name? This will clear your saved name from this device.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Change", style: "destructive", onPress: proceed }
+        ]
+      );
+    }
+  };
+
+  const handleSetupName = () => {
+    setTempName(savedName || "");
+    setShowNameModal(true);
+  };
+
+  const saveName = async () => {
+    const trimmed = tempName.trim();
+    if (!trimmed) {
+      notify("Wait!", "Please enter a valid name.");
+      return;
+    }
+    await AsyncStorage.setItem('last_frog_name', trimmed);
+    setSavedName(trimmed);
+    setLeaderboardName(trimmed);
+    setShowNameModal(false);
+    await checkIfAlreadySolved(trimmed);
   };
 
   // Load saved name and check if solved on mount
@@ -673,7 +710,14 @@ export default function App() {
             <Text style={styles.notYouText}>Not you?</Text>
           </TouchableOpacity>
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.welcomeContainer}>
+          <Text style={styles.welcomeText}>No name set</Text>
+          <TouchableOpacity onPress={handleSetupName} style={styles.notYouBtn}>
+            <Text style={[styles.notYouText, { color: '#2e7d32' }]}>Setup Name</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View style={styles.titleRow}>
@@ -917,6 +961,56 @@ export default function App() {
             >
               <Text style={styles.buttonText}>{"LET'S JUMP IN!"}</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showNameModal}
+        onRequestClose={() => setShowNameModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Set Your Name
+              <Image
+                source={require('../../assets/images/froghead.webp')}
+                style={styles.howtoplayFrog}
+              />
+            </Text>
+
+            <View style={styles.ruleSection}>
+              <Text style={styles.setupDescription}>
+                Enter your name to automatically submit and display your scores on the leaderboard.
+              </Text>
+              
+              <TextInput
+                style={styles.leaderboardInput}
+                placeholder="Enter Name (max 15 chars)"
+                placeholderTextColor="#999"
+                value={tempName}
+                onChangeText={setTempName}
+                maxLength={15}
+                autoFocus={true}
+                onSubmitEditing={saveName}
+              />
+            </View>
+
+            <View style={styles.setupButtonsRow}>
+              <TouchableOpacity
+                style={[styles.setupBtn, styles.cancelBtn]}
+                onPress={() => setShowNameModal(false)}
+              >
+                <Text style={styles.cancelBtnText}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.setupBtn, styles.saveBtn]}
+                onPress={saveName}
+              >
+                <Text style={styles.saveBtnText}>SAVE</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1288,5 +1382,44 @@ const styles = StyleSheet.create({
     color: '#558b2f',
     textAlign: 'center',
     fontWeight: '600',
+  },
+  setupDescription: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  setupButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 20,
+    gap: 10,
+  },
+  setupBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelBtn: {
+    backgroundColor: '#eceff1',
+    borderWidth: 1,
+    borderColor: '#cfd8dc',
+  },
+  cancelBtnText: {
+    color: '#37474f',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  saveBtn: {
+    backgroundColor: '#2e7d32',
+  },
+  saveBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
