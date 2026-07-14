@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View
 } from 'react-native';
 
@@ -18,22 +17,13 @@ const LeaderboardScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [savedName, setSavedName] = useState('');
-  const [view, setView] = useState('today'); // 'today' or 'allTime'
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     try {
-      // 1. Prevent blank screen: Only show full loading if we don't have data yet.
-      // Otherwise, we update silently in the background (or show a small indicator).
       if (data.players.length === 0) setLoading(true);
 
-      // 2. Get the user's local date in YYYY-MM-DD format (e.g., "2026-01-17")
       const localDate = new Date().toLocaleDateString('en-CA');
-
-      // 3. Construct the endpoint based on the active view
-      // We pass the localDate as a query parameter for the 'today' view
-      const endpoint = view === 'today'
-        ? `/leaderboard?date=${localDate}&v=2`
-        : `/total-completed?date=${localDate}&v=2`;
+      const endpoint = `/leaderboard?date=${localDate}&v=2`;
 
       const response = await fetch(`${API_URL}${endpoint}`);
 
@@ -43,8 +33,6 @@ const LeaderboardScreen = () => {
 
       const json = await response.json();
 
-      // 4. Update state with the new data
-      // By setting data after the fetch completes, the screen doesn't go blank.
       if (json.players) {
         setData(json);
       } else {
@@ -53,13 +41,11 @@ const LeaderboardScreen = () => {
 
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
-      // Optional: Alert the user if it fails
     } finally {
-      // 5. Always stop the loading/refreshing indicators
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [data.players.length]);
 
   const loadStoredName = async () => {
     try {
@@ -73,23 +59,16 @@ const LeaderboardScreen = () => {
   useEffect(() => {
     loadStoredName();
     fetchLeaderboard();
-  }, [view]); // Re-fetch when view changes
+  }, [fetchLeaderboard]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchLeaderboard();
-  }, [view]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
+  }, [fetchLeaderboard]);
 
   const renderItem = ({ item, index }: { item: any; index: number }) => {
     const isMe = item.username === savedName;
 
-    // Handle the case where score might be missing or 0
     const displayScore = (item.score !== undefined && item.score !== null)
       ? item.score.toFixed(2)
       : "0.00";
@@ -107,13 +86,12 @@ const LeaderboardScreen = () => {
         </Text>
 
         <Text style={styles.scoreText}>
-          {view === 'today' ? displayScore : `${item.total_days || 0} days`}
+          {displayScore}
         </Text>
       </View>
     );
   };
 
-  // Total solves
   const renderStatsHeader = () => {
     return (
       <View style={styles.statsHeader}>
@@ -133,23 +111,7 @@ const LeaderboardScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🏆 Leaderboards</Text>
-
-        {/* Toggle Switch */}
-        <View style={styles.toggleContainer}>
-          <TouchableOpacity
-            style={[styles.toggleButton, view === 'today' && styles.toggleActive]}
-            onPress={() => setView('today')}
-          >
-            <Text style={[styles.toggleLabel, view === 'today' && styles.toggleLabelActive]}>Today</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleButton, view === 'allTime' && styles.toggleActive]}
-            onPress={() => setView('allTime')}
-          >
-            <Text style={[styles.toggleLabel, view === 'allTime' && styles.toggleLabelActive]}>Puzzles Completed</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.title}>🏆 Leaderboard</Text>
       </View>
 
       {loading && !refreshing ? (
@@ -176,12 +138,7 @@ const LeaderboardScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f0fdf4' },
   header: { padding: 20, alignItems: 'center', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#d1fae5' },
-  title: { fontSize: Platform.OS === 'android' ? 20 : 24, fontWeight: '900', color: '#166534', marginBottom: 15 },
-  toggleContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 25, padding: 4, width: '80%' },
-  toggleButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 21 },
-  toggleActive: { backgroundColor: '#2d5a27' },
-  toggleLabel: { fontSize: Platform.OS === 'android' ? 10 : 14, fontWeight: 'bold', color: '#64748b' },
-  toggleLabelActive: { color: 'white' },
+  title: { fontSize: Platform.OS === 'android' ? 20 : 24, fontWeight: '900', color: '#166534' },
   listContent: { padding: 15 },
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 15, borderRadius: 12, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
   myRow: { backgroundColor: '#dcfce7', borderColor: '#22c55e', borderWidth: 1 },
@@ -204,7 +161,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     borderWidth: 1,
     borderColor: '#d1fae5',
-    // Standard shadows
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
