@@ -632,7 +632,7 @@ export default function App() {
     setIsValidating(true);
     if (guess !== TARGET_WORD) {
       try {
-        const response = await fetch("https://wordfrogdictionary.superjeffc.com/validate", {
+        const response = await fetch("https://word-frog-dictionary-api.superjeffc.workers.dev/validate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ word: guess })
