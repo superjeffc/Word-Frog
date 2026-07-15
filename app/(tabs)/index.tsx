@@ -440,7 +440,6 @@ export default function App() {
         await AsyncStorage.removeItem('last_frog_name');
       } else if (response.ok) {
         setHasSubmitted(true);
-        notify("Success!", "Your score has been auto-submitted!");
       } else {
         throw new Error(result.error || "Submission failed");
       }
@@ -486,7 +485,6 @@ export default function App() {
         // Save name for next time
         await AsyncStorage.setItem('last_frog_name', leaderboardName);
         setSavedName(leaderboardName);
-        notify("Success!", "You're on the board.");
       } else {
         // Handle other server errors (400, 500, etc.)
         throw new Error(result.error || "Submission failed");
