@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import * as Crypto from 'expo-crypto';
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -751,6 +752,18 @@ export default function App() {
             <Text style={styles.alreadySolvedEmoji}>🐸🎉</Text>
             <Text style={styles.alreadySolvedText}>{"You have already solved today's puzzle!"}</Text>
             <Text style={styles.alreadySolvedSubtext}>Come back tomorrow for another word.</Text>
+            
+            <View style={styles.continueSection}>
+              <Text style={styles.continueText}>
+                Want to keep playing? Practice with a random word!
+              </Text>
+              <TouchableOpacity
+                style={styles.continueBtn}
+                onPress={() => router.navigate('/practice')}
+              >
+                <Text style={styles.continueBtnText}>PLAY PRACTICE MODE 🐸</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
           <>
@@ -860,6 +873,19 @@ export default function App() {
                   <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
                     <Text style={styles.buttonText}>SHARE SCORE</Text>
                   </TouchableOpacity>
+
+                  {/* --- PRACTICE MODE BLURB & BUTTON --- */}
+                  <View style={styles.practiceWinSection}>
+                    <Text style={styles.practiceWinText}>
+                      {"Solved today's word? Keep the fun going with a completely random word!"}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.practiceWinBtn}
+                      onPress={() => router.navigate('/practice')}
+                    >
+                      <Text style={styles.practiceWinBtnText}>PLAY RANDOM WORD 🐸</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ) : (
                 <>
@@ -1441,5 +1467,66 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  continueSection: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    alignItems: 'center',
+    width: '100%',
+  },
+  continueText: {
+    fontSize: 14,
+    color: '#558b2f',
+    textAlign: 'center',
+    marginBottom: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  continueBtn: {
+    backgroundColor: '#2e7d32',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  continueBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  practiceWinSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e8f5e9',
+    alignItems: 'center',
+    width: '100%',
+  },
+  practiceWinText: {
+    fontSize: 13,
+    color: '#558b2f',
+    textAlign: 'center',
+    marginBottom: 10,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  practiceWinBtn: {
+    backgroundColor: '#4caf50',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#388e3c',
+  },
+  practiceWinBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
