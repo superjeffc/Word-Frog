@@ -72,7 +72,7 @@ export default function App() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [hintCount, setHintCount] = useState(0);
-  const [showHint, setShowHint] = useState(false);
+  const [hintedLettersCount, setHintedLettersCount] = useState(0);
   const [savedName, setSavedName] = useState("");
   const [alreadySolved, setAlreadySolved] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
@@ -525,7 +525,7 @@ export default function App() {
   const handleGetHint = () => {
     if (isGameOver) return;
 
-    const nextIndex = revealedPrefix.length;
+    const nextIndex = revealedPrefix.length + hintedLettersCount;
     if (nextIndex >= TARGET_WORD.length) {
       notify("Already Completed", "All letters have been revealed!");
       return;
@@ -533,14 +533,9 @@ export default function App() {
 
     const nextLetter = TARGET_WORD[nextIndex];
 
-    if (showHint) {
-      notify("Hint Already Active", `The next letter is "${nextLetter}". It is shown in the word grid.`);
-      return;
-    }
-
     const performGetHint = () => {
       setHintCount(prev => prev + 1);
-      setShowHint(true);
+      setHintedLettersCount(prev => prev + 1);
       setMessage(`💡 Hint: The next letter is "${nextLetter}"`);
     };
 
@@ -668,7 +663,7 @@ export default function App() {
       setRevealedPrefix(TARGET_WORD);
       setEndTime(now);
       setIsGameOver(true);
-      setShowHint(false);
+      setHintedLettersCount(0);
 
       // Calculate score immediately to send it
       const nowScore = calculateScore(turnCount + 1, hintCount, now);
@@ -695,7 +690,7 @@ export default function App() {
 
     setRevealedPrefix(newPrefix);
     setUserInput('');
-    setShowHint(false);
+    setHintedLettersCount(prev => Math.max(0, prev - 1));
 
     setMessage(`✅ Nice! Next letter: ${nextLetter}`);
   };
@@ -793,7 +788,7 @@ export default function App() {
                 <View style={styles.wordContainer}>
                   {TARGET_WORD.split('').map((letter, index) => {
                     const isRevealed = index < revealedPrefix.length;
-                    const isHint = showHint && index === revealedPrefix.length;
+                    const isHint = index >= revealedPrefix.length && index < revealedPrefix.length + hintedLettersCount;
                     return (
                       <View
                         key={index}
