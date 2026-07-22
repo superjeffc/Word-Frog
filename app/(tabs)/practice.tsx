@@ -68,11 +68,21 @@ export default function PracticeScreen() {
   useEffect(() => {
     let isMounted = true;
 
-    getRandomWord().then(word => {
+    getRandomWord().then(async (word) => {
       if (isMounted && word) {
         setTargetWord(word);
         setRevealedPrefix(word[0]);
         setMessage(`"${word.length} letters. Starts with "${word[0]}"`);
+        
+        // If the user already has a saved name, they won't see the rules modal.
+        // Start the game timer immediately once the word is ready.
+        const saved = await AsyncStorage.getItem('last_frog_name');
+        if (saved) {
+          const now = new Date();
+          setStartTime(now);
+          setCurrentTime(now);
+        }
+        
         setAppIsReady(true);
       }
     }).catch(err => {
@@ -266,7 +276,7 @@ export default function PracticeScreen() {
       finalScore = finalScore - basePenalty - perHintPenalty;
     }
 
-    return finalScore.toFixed(2);
+    return finalScore.toFixed(4);
   };
 
   const handleGetHint = () => {
