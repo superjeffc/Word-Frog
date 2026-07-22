@@ -82,11 +82,21 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-    getWordOfTheDay().then(word => {
+    getWordOfTheDay().then(async (word) => {
       if (isMounted && word) {
         setTargetWord(word);
         setRevealedPrefix(word[0]);
         setMessage(`"${word.length} letters. Starts with "${word[0]}"`);
+        
+        // If the user already has a saved name, they won't see the rules modal.
+        // Start the game timer immediately once the word is ready.
+        const saved = await AsyncStorage.getItem('last_frog_name');
+        if (saved) {
+          const now = new Date();
+          setStartTime(now);
+          setCurrentTime(now);
+        }
+        
         setAppIsReady(true);
       }
     }).catch(err => {
@@ -519,7 +529,7 @@ export default function App() {
       finalScore = finalScore - basePenalty - perHintPenalty;
     }
 
-    return finalScore.toFixed(2);
+    return finalScore.toFixed(4);
   };
 
   const handleGetHint = () => {
