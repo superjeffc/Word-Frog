@@ -1,3 +1,41 @@
+const COMMON_WORDS = [
+  // 4 letters
+  "FROG", "TOAD", "LEAP", "POND", "BARK", "BLUE", "WIND", "CAMP", "DRUM", "FACT", 
+  "GAME", "HAND", "JUMP", "KING", "LION", "MIND", "NEST", "RIDE", "SONG", "TENT", 
+  "UNIT", "VEST", "WAVE", "YARD", "ZEAL", "ROAD", "WORK", "SHIP", "FISH", "BIRD", 
+  "MILK", "COLD", "FIRE", "WOOD", "ROCK", "SAND", "DUST", "LUCK", "BOAT", "COAT",
+  "DEER", "DUCK", "EAST", "WEST", "GATE", "HILL", "LAKE", "MOON", "RAIN", "SNOW",
+  
+  // 5 letters
+  "GREEN", "WATER", "CROAK", "APPLE", "BREAD", "CHAIR", "DANCE", "EARTH", "FRUIT", 
+  "GRASS", "HOUSE", "LIGHT", "MOUSE", "NIGHT", "PAPER", "QUEEN", "RIVER", "SHIRT", 
+  "TABLE", "TRAIN", "VOICE", "WORLD", "YOUTH", "ZEBRA", "SHARK", "CLOUD", "STORM", 
+  "FLAME", "STONE", "GLASS", "METAL", "BRICK", "PLANT", "SWEET", "MATCH", "SMOKE",
+  "BEACH", "CLOCK", "FLUTE", "HEART", "LEMON", "ONION", "PIANO", "SNAKE", "TIGER",
+  
+  // 6 letters
+  "YELLOW", "SPRING", "SUMMER", "WINTER", "AUTUMN", "FLOWER", "GARDEN", "FOREST", 
+  "STREAM", "BRIDGE", "CASTLE", "PALACE", "TEMPLE", "CHURCH", "SCHOOL", "MARKET", 
+  "STREET", "OFFICE", "POLICY", "SYSTEM", "METHOD", "ENGINE", "CAMERA", "SCREEN", 
+  "PLAYER", "HOCKEY", "SOCCER", "TENNIS", "SADDLE", "BOTTLE", "KETTLE", "BASKET",
+  "ANIMAL", "BUBBLE", "CANDLE", "DOLLAR", "FLIGHT", "GUITAR", "MONKEY", "PENCIL",
+  
+  // 7 letters
+  "WEATHER", "JOURNEY", "BICYCLE", "AIRPORT", "STATION", "LIBRARY", "THEATER", 
+  "COUNTRY", "VILLAGE", "BLANKET", "LANTERN", "CHIMNEY", "KITCHEN", "BEDROOM", 
+  "HEADSET", "MONITOR", "PRINTER", "SCANNER", "SEASIDE", "BONFIRE", "HARVEST", 
+  "SUNRISE", "SUNSET", "EVENING", "MORNING", "ACADEMY", "CAPTAIN", "DIAMOND",
+  "JOURNAL", "OCTOPUS", "PENGUIN", "SILENCE", "SURGERY", "VICTORY", "WHISPER",
+  
+  // 8 letters
+  "MOUNTAIN", "ELEPHANT", "COMPUTER", "KEYBOARD", "HOSPITAL", "BUILDING", 
+  "BUSINESS", "MOVEMENT", "POSITION", "ACTIVITY", "LANGUAGE", "QUESTION", 
+  "DOCUMENT", "STRENGTH", "FOREHEAD", "SHOULDER", "RAINBOW", "FEATHER", 
+  "CHAMPION", "STRATEGY", "TREASURE", "MOONLIGHT", "SUNSHINE", "FIREWORK",
+  "ACCIDENT", "BEAUTIFUL", "CALENDAR", "FESTIVAL", "FRIENDLY", "GARDENER",
+  "SATELLITE", "SQUIRREL", "TRIANGLE", "UMBRELLA", "VACATION", "WINDMILL"
+];
+
 export interface Env {
   DICTIONARY_KV: KVNamespace;
 }
@@ -45,30 +83,7 @@ export default {
 
     if (url.pathname === "/random" && request.method === "GET") {
       try {
-        let attempts = 0;
-        let foundWord = "";
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        
-        while (attempts < 10 && !foundWord) {
-          attempts++;
-          // Generate a random 2-letter prefix
-          const randomPrefix = chars[Math.floor(Math.random() * 26)] + chars[Math.floor(Math.random() * 26)];
-          
-          const listResult = await env.DICTIONARY_KV.list({ prefix: randomPrefix, limit: 100 });
-          const eligible = listResult.keys
-            .map(k => k.name.toUpperCase())
-            .filter(name => name.length >= 4 && name.length <= 8 && /^[A-Z]+$/.test(name) && /[AEIOUY]/.test(name));
-            
-          if (eligible.length > 0) {
-            foundWord = eligible[Math.floor(Math.random() * eligible.length)];
-          }
-        }
-        
-        // Fallback if we couldn't find a word after 10 attempts
-        if (!foundWord) {
-          const fallbacks = ["FROG", "LEAP", "POND", "TOAD", "WATER", "GREEN", "JUMP", "CROAK"];
-          foundWord = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-        }
+        const foundWord = COMMON_WORDS[Math.floor(Math.random() * COMMON_WORDS.length)];
 
         return new Response(JSON.stringify({ word: foundWord }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }

@@ -59,7 +59,7 @@ export default function PracticeScreen() {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hintCount, setHintCount] = useState(0);
-  const [showHint, setShowHint] = useState(false);
+  const [hintedLettersCount, setHintedLettersCount] = useState(0);
   const [savedName, setSavedName] = useState("");
   const [showNameModal, setShowNameModal] = useState(false);
   const [tempName, setTempName] = useState("");
@@ -272,7 +272,7 @@ export default function PracticeScreen() {
   const handleGetHint = () => {
     if (isGameOver) return;
 
-    const nextIndex = revealedPrefix.length;
+    const nextIndex = revealedPrefix.length + hintedLettersCount;
     if (nextIndex >= TARGET_WORD.length) {
       notify("Already Completed", "All letters have been revealed!");
       return;
@@ -280,14 +280,9 @@ export default function PracticeScreen() {
 
     const nextLetter = TARGET_WORD[nextIndex];
 
-    if (showHint) {
-      notify("Hint Already Active", `The next letter is "${nextLetter}". It is shown in the word grid.`);
-      return;
-    }
-
     const performGetHint = () => {
       setHintCount(prev => prev + 1);
-      setShowHint(true);
+      setHintedLettersCount(prev => prev + 1);
       setMessage(`💡 Hint: The next letter is "${nextLetter}"`);
     };
 
@@ -344,7 +339,7 @@ export default function PracticeScreen() {
     setIsGameOver(false);
     setStartTime(null);
     setHintCount(0);
-    setShowHint(false);
+    setHintedLettersCount(0);
 
     // Reset animated values
     frogX.setValue(0);
@@ -419,7 +414,7 @@ export default function PracticeScreen() {
       setRevealedPrefix(TARGET_WORD);
       setEndTime(now);
       setIsGameOver(true);
-      setShowHint(false);
+      setHintedLettersCount(0);
 
       setMessage("BULLSEYE! 🐸🏆\n\nYou solved the practice word!");
       return;
@@ -437,7 +432,7 @@ export default function PracticeScreen() {
 
     setRevealedPrefix(newPrefix);
     setUserInput('');
-    setShowHint(false);
+    setHintedLettersCount(prev => Math.max(0, prev - 1));
 
     setMessage(`✅ Nice! Next letter: ${nextLetter}`);
   };
@@ -512,7 +507,7 @@ export default function PracticeScreen() {
             <View style={styles.wordContainer}>
               {TARGET_WORD.split('').map((letter, index) => {
                 const isRevealed = index < revealedPrefix.length;
-                const isHint = showHint && index === revealedPrefix.length;
+                const isHint = index >= revealedPrefix.length && index < revealedPrefix.length + hintedLettersCount;
                 return (
                   <View
                     key={index}
