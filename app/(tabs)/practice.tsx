@@ -42,6 +42,19 @@ const getRandomWord = async () => {
   }
 };
 
+const generateAlphanumericSuffix = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+const isValidSuffix = (suffix: string) => {
+  return /^[A-Z0-9]{6}$/.test(suffix.trim().toUpperCase());
+};
+
 export default function PracticeScreen() {
   const { width } = useWindowDimensions();
 
@@ -173,7 +186,8 @@ export default function PracticeScreen() {
   };
 
   const handleSetupName = () => {
-    setTempName(savedName || "");
+    const base = savedName ? savedName.split('#')[0] : "";
+    setTempName(base);
     setShowNameModal(true);
   };
 
@@ -183,8 +197,48 @@ export default function PracticeScreen() {
       notify("Wait!", "Please enter a valid name.");
       return;
     }
-    await AsyncStorage.setItem('last_frog_name', trimmed);
-    setSavedName(trimmed);
+
+    let baseName = trimmed;
+    let suffix = '';
+
+    if (trimmed.includes('#')) {
+      const parts = trimmed.split('#');
+      baseName = parts[0].trim();
+      suffix = parts[1].trim();
+    }
+
+    if (!baseName) {
+      notify("Wait!", "Please enter a valid name.");
+      return;
+    }
+
+    if (baseName.length > 12) {
+      baseName = baseName.slice(0, 12);
+    }
+
+    const previousSaved = await AsyncStorage.getItem('last_frog_name') || '';
+    let previousBase = '';
+    let previousSuffix = '';
+    if (previousSaved.includes('#')) {
+      const parts = previousSaved.split('#');
+      previousBase = parts[0].trim();
+      previousSuffix = parts[1].trim();
+    }
+
+    if (!suffix || !isValidSuffix(suffix)) {
+      if (baseName.toLowerCase() === previousBase.toLowerCase() && previousSuffix && isValidSuffix(previousSuffix)) {
+        suffix = previousSuffix.toUpperCase();
+      } else {
+        suffix = generateAlphanumericSuffix();
+      }
+    } else {
+      suffix = suffix.toUpperCase();
+    }
+
+    const finalName = `${baseName}#${suffix}`;
+
+    await AsyncStorage.setItem('last_frog_name', finalName);
+    setSavedName(finalName);
     setShowNameModal(false);
   };
 
@@ -472,7 +526,12 @@ export default function PracticeScreen() {
       <StatusBar style="dark" />
       {savedName ? (
         <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeText}>Hello, {savedName}</Text>
+          <Text style={styles.welcomeText}>
+            Hello, {savedName.split('#')[0]}
+            {savedName.includes('#') && (
+              <Text style={styles.welcomeTag}>#{savedName.split('#')[1]}</Text>
+            )}
+          </Text>
           <TouchableOpacity onPress={handleNotYou} style={styles.notYouBtn}>
             <Text style={styles.notYouText}>Not you?</Text>
           </TouchableOpacity>
@@ -1026,6 +1085,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     color: '#2e7d32',
+  },
+  welcomeTag: {
+    fontSize: 10,
+    fontWeight: 'normal',
+    color: '#777',
   },
   notYouBtn: {
     marginTop: 1,
