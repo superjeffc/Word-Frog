@@ -95,6 +95,10 @@ const LeaderboardScreen = () => {
       ? item.score.toFixed(2)
       : "0.00";
 
+    const nameParts = item.username ? item.username.split('#') : [];
+    const displayName = nameParts[0] || "";
+    const displayTag = nameParts[1] ? `#${nameParts[1]}` : "";
+
     return (
       <View style={[styles.row, isMe && styles.myRow]}>
         <View style={styles.rankContainer}>
@@ -104,7 +108,9 @@ const LeaderboardScreen = () => {
         </View>
 
         <Text style={[styles.username, isMe && styles.myText]}>
-          {item.username} {isMe ? "🐸" : ""}
+          {displayName}
+          {displayTag ? <Text style={styles.usernameTag}> {displayTag}</Text> : ""}
+          {isMe ? " 🐸" : ""}
         </Text>
 
         <Text style={styles.scoreText}>
@@ -209,6 +215,11 @@ const styles = StyleSheet.create({
   rankText: { fontSize: 18, fontWeight: 'bold', color: '#6b7280' },
   topThree: { color: '#166534', fontSize: 22 },
   username: { marginLeft: 15, flex: 1, fontSize: 17, color: '#374151', fontWeight: '500' },
+  usernameTag: {
+    fontSize: 13,
+    color: '#9ca3af',
+    fontWeight: 'normal',
+  },
   myText: { fontWeight: '900', color: '#166534' },
   scoreText: { fontSize: 16, fontWeight: 'bold', color: '#2d5a27' },
   loader: { flex: 1, justifyContent: 'center' },

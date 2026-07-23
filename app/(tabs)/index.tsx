@@ -50,6 +50,19 @@ const getWordOfTheDay = async () => {
   }
 };
 
+const generateAlphanumericSuffix = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+const isValidSuffix = (suffix: string) => {
+  return /^[A-Z0-9]{6}$/.test(suffix.trim().toUpperCase());
+};
+
 export default function App() {
   const { width } = useWindowDimensions();
 
@@ -269,11 +282,24 @@ export default function App() {
   }, [startTime, isGameOver]); // Added startTime as a dependency
 
   const checkIfAlreadySolved = async (nameToCheck: string) => {
+    // 1. Check local storage first
+    try {
+      const localDate = new Date().toLocaleDateString('en-CA');
+      const solvedDate = await AsyncStorage.getItem('last_solved_date');
+      if (solvedDate === localDate) {
+        setAlreadySolved(true);
+        return;
+      }
+    } catch (e) {
+      console.error("Error checking local solved status:", e);
+    }
+
     if (!nameToCheck.trim()) {
       setAlreadySolved(false);
       return;
     }
 
+    // 2. Fallback to server check
     try {
       const localDate = new Date().toLocaleDateString('en-CA');
       const response = await fetch(`https://wordfrogleaderboard.superjeffc.com/leaderboard?date=${localDate}&v=2`);
@@ -286,6 +312,10 @@ export default function App() {
       const found = players.some(
         (player: any) => player.username && player.username.trim().toLowerCase() === nameToCheck.trim().toLowerCase()
       );
+
+      if (found) {
+        await AsyncStorage.setItem('last_solved_date', localDate);
+      }
 
       setAlreadySolved(found);
     } catch (error) {
@@ -319,7 +349,8 @@ export default function App() {
   };
 
   const handleSetupName = () => {
-    setTempName(savedName || "");
+    const base = savedName ? savedName.split('#')[0] : "";
+    setTempName(base);
     setShowNameModal(true);
   };
 
@@ -329,11 +360,51 @@ export default function App() {
       notify("Wait!", "Please enter a valid name.");
       return;
     }
-    await AsyncStorage.setItem('last_frog_name', trimmed);
-    setSavedName(trimmed);
-    setLeaderboardName(trimmed);
+
+    let baseName = trimmed;
+    let suffix = '';
+
+    if (trimmed.includes('#')) {
+      const parts = trimmed.split('#');
+      baseName = parts[0].trim();
+      suffix = parts[1].trim();
+    }
+
+    if (!baseName) {
+      notify("Wait!", "Please enter a valid name.");
+      return;
+    }
+
+    if (baseName.length > 12) {
+      baseName = baseName.slice(0, 12);
+    }
+
+    const previousSaved = await AsyncStorage.getItem('last_frog_name') || '';
+    let previousBase = '';
+    let previousSuffix = '';
+    if (previousSaved.includes('#')) {
+      const parts = previousSaved.split('#');
+      previousBase = parts[0].trim();
+      previousSuffix = parts[1].trim();
+    }
+
+    if (!suffix || !isValidSuffix(suffix)) {
+      if (baseName.toLowerCase() === previousBase.toLowerCase() && previousSuffix && isValidSuffix(previousSuffix)) {
+        suffix = previousSuffix.toUpperCase();
+      } else {
+        suffix = generateAlphanumericSuffix();
+      }
+    } else {
+      suffix = suffix.toUpperCase();
+    }
+
+    const finalName = `${baseName}#${suffix}`;
+
+    await AsyncStorage.setItem('last_frog_name', finalName);
+    setSavedName(finalName);
+    setLeaderboardName(finalName);
     setShowNameModal(false);
-    await checkIfAlreadySolved(trimmed);
+    await checkIfAlreadySolved(finalName);
   };
 
   // Load saved name and check if solved on mount
@@ -347,6 +418,7 @@ export default function App() {
       } else {
         // Only show rules for first-time users (no saved name)
         setShowRules(true);
+        await checkIfAlreadySolved("");
       }
     };
     initNameAndRules();
@@ -430,20 +502,42 @@ export default function App() {
     setIsSubmitting(true);
     try {
       const localDate = new Date().toLocaleDateString('en-CA');
-      const response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
+      let currentName = name;
+      let response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: name,
+          username: currentName,
           score: Number(finalScore),
           date: localDate,
           uuid: id
         }),
       });
 
-      const result = await response.json();
+      let result = await response.json();
+      let attempts = 0;
 
-      if (response.status === 409) {
+      while ((response.status === 409 || (response.status === 400 && result.error === "Submission failed")) && attempts < 3) {
+        attempts++;
+        const parts = currentName.split('#');
+        const baseName = parts[0];
+        const newSuffix = generateAlphanumericSuffix();
+        currentName = `${baseName}#${newSuffix}`;
+
+        response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: currentName,
+            score: Number(finalScore),
+            date: localDate,
+            uuid: id
+          }),
+        });
+        result = await response.json();
+      }
+
+      if (response.status === 409 || (response.status === 400 && result.error === "Submission failed")) {
         notify("Name Taken", "Your saved name was already used today! Please enter a new one.");
         setHasSubmitted(false);
         setSavedName('');
@@ -451,6 +545,11 @@ export default function App() {
         await AsyncStorage.removeItem('last_frog_name');
       } else if (response.ok) {
         setHasSubmitted(true);
+        if (currentName !== name) {
+          await AsyncStorage.setItem('last_frog_name', currentName);
+          setSavedName(currentName);
+          setLeaderboardName(currentName);
+        }
       } else {
         throw new Error(result.error || "Submission failed");
       }
@@ -462,42 +561,97 @@ export default function App() {
   };
 
   const submitToLeaderboard = async () => {
-    // 1. Validate that the user actually entered a name
-    if (!leaderboardName.trim()) {
+    const trimmed = leaderboardName.trim();
+    if (!trimmed) {
       notify("Wait!", "Please enter a name for the board.");
       return;
     }
 
+    let baseName = trimmed;
+    let suffix = '';
+
+    if (trimmed.includes('#')) {
+      const parts = trimmed.split('#');
+      baseName = parts[0].trim();
+      suffix = parts[1].trim();
+    }
+
+    if (!baseName) {
+      notify("Wait!", "Please enter a name for the board.");
+      return;
+    }
+
+    if (baseName.length > 12) {
+      baseName = baseName.slice(0, 12);
+    }
+
+    const previousSaved = await AsyncStorage.getItem('last_frog_name') || '';
+    let previousBase = '';
+    let previousSuffix = '';
+    if (previousSaved.includes('#')) {
+      const parts = previousSaved.split('#');
+      previousBase = parts[0].trim();
+      previousSuffix = parts[1].trim();
+    }
+
+    if (!suffix || !isValidSuffix(suffix)) {
+      if (baseName.toLowerCase() === previousBase.toLowerCase() && previousSuffix && isValidSuffix(previousSuffix)) {
+        suffix = previousSuffix.toUpperCase();
+      } else {
+        suffix = generateAlphanumericSuffix();
+      }
+    } else {
+      suffix = suffix.toUpperCase();
+    }
+
+    let finalName = `${baseName}#${suffix}`;
+
     setIsSubmitting(true);
     try {
-      // 2. Generate the local date in YYYY-MM-DD format (e.g., "2026-01-17")
-      // This ensures the score is filed under the user's current calendar day
       const localDate = new Date().toLocaleDateString('en-CA');
       const finalScore = calculateScore();
 
-      // 4. Send the POST request
-      const response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
+      let attempts = 0;
+      let response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: leaderboardName,
-          score: Number(finalScore),      // Send as a float/number
-          date: localDate,                // Send the local date string
-          uuid: submissionId ?? null      // Send the same UUID generated earlier
+          username: finalName,
+          score: Number(finalScore),
+          date: localDate,
+          uuid: submissionId ?? null
         }),
       });
 
-      const result = await response.json();
+      let result = await response.json();
 
-      if (response.status === 409) {
+      while ((response.status === 409 || (response.status === 400 && result.error === "Submission failed")) && attempts < 3) {
+        attempts++;
+        suffix = generateAlphanumericSuffix();
+        finalName = `${baseName}#${suffix}`;
+
+        response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: finalName,
+            score: Number(finalScore),
+            date: localDate,
+            uuid: submissionId ?? null
+          }),
+        });
+        result = await response.json();
+      }
+
+      if (response.status === 409 || (response.status === 400 && result.error === "Submission failed")) {
         notify("Name Taken", "Someone already used that name today! Try another.");
       } else if (response.ok) {
         setHasSubmitted(true);
         // Save name for next time
-        await AsyncStorage.setItem('last_frog_name', leaderboardName);
-        setSavedName(leaderboardName);
+        await AsyncStorage.setItem('last_frog_name', finalName);
+        setSavedName(finalName);
+        setLeaderboardName(finalName);
       } else {
-        // Handle other server errors (400, 500, etc.)
         throw new Error(result.error || "Submission failed");
       }
     } catch (error) {
@@ -675,6 +829,12 @@ export default function App() {
       setIsGameOver(true);
       setHintedLettersCount(0);
 
+      // Save solve date to local storage immediately
+      const localDate = new Date().toLocaleDateString('en-CA');
+      AsyncStorage.setItem('last_solved_date', localDate).catch(err => 
+        console.error("Error saving solved date:", err)
+      );
+
       // Calculate score immediately to send it
       const nowScore = calculateScore(turnCount + 1, hintCount, now);
       
@@ -731,7 +891,12 @@ export default function App() {
       <StatusBar style="dark" />
       {savedName ? (
         <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeText}>Hello, {savedName}</Text>
+          <Text style={styles.welcomeText}>
+            Hello, {savedName.split('#')[0]}
+            {savedName.includes('#') && (
+              <Text style={styles.welcomeTag}>#{savedName.split('#')[1]}</Text>
+            )}
+          </Text>
           <TouchableOpacity onPress={handleNotYou} style={styles.notYouBtn}>
             <Text style={styles.notYouText}>Not you?</Text>
           </TouchableOpacity>
@@ -1392,6 +1557,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
     color: '#2e7d32',
+  },
+  welcomeTag: {
+    fontSize: 10,
+    fontWeight: 'normal',
+    color: '#777',
   },
   notYouBtn: {
     marginTop: 1,
