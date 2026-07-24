@@ -296,16 +296,54 @@ export default function PracticeScreen() {
     return mins === 0 ? `${secs} second(s)` : `${mins}m ${secs.toString().padStart(2, '0')}s`;
   };
 
+  const confirmedPrefix = TARGET_WORD ? TARGET_WORD.slice(0, revealedPrefix.length + hintedLettersCount) : revealedPrefix;
+
   const handleKeyPress = (key: string) => {
     if (isGameOver) return;
+
     if (key === 'ENTER') {
       handleSubmit();
     } else if (key === '⌫') {
-      setUserInput((prev) => prev.slice(0, -1));
+      setUserInput((prev) => {
+        let current = prev.startsWith(confirmedPrefix) ? prev : confirmedPrefix + prev;
+        if (current.length <= confirmedPrefix.length) {
+          return current;
+        }
+        return current.slice(0, -1);
+      });
     } else {
-      setUserInput((prev) => prev + key);
+      setUserInput((prev) => {
+        let current = prev.startsWith(confirmedPrefix) ? prev : confirmedPrefix + prev;
+        if (current.length >= TARGET_WORD.length) {
+          return current;
+        }
+        return current + key;
+      });
     }
   };
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isGameOver) return;
+      if (document.activeElement?.tagName === 'INPUT') return;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleKeyPress('ENTER');
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleKeyPress('⌫');
+      } else if (/^[a-zA-Z]$/.test(e.key)) {
+        e.preventDefault();
+        handleKeyPress(e.key.toUpperCase());
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isGameOver, userInput, revealedPrefix, hintedLettersCount, TARGET_WORD]);
 
   const startLeapFrog = () => {
     const now = new Date();
@@ -577,6 +615,17 @@ export default function PracticeScreen() {
               {TARGET_WORD.split('').map((letter, index) => {
                 const isRevealed = index < revealedPrefix.length;
                 const isHint = index >= revealedPrefix.length && index < revealedPrefix.length + hintedLettersCount;
+                const isConfirmed = isRevealed || isHint;
+
+                const effectiveInput = userInput.startsWith(confirmedPrefix) ? userInput : (confirmedPrefix + userInput);
+                const typedChar = effectiveInput[index]?.toUpperCase();
+                const isGuess = !isConfirmed && Boolean(typedChar);
+
+                const activeIndex = effectiveInput.length;
+                const isActiveCursor = !isConfirmed && index === activeIndex && !isGameOver;
+
+                const displayChar = isConfirmed ? letter : (typedChar || '');
+
                 return (
                   <View
                     key={index}
@@ -588,15 +637,18 @@ export default function PracticeScreen() {
                         marginHorizontal: 4
                       },
                       isRevealed && styles.revealedBox,
-                      isHint && styles.hintBox
+                      isHint && styles.hintBox,
+                      isGuess && styles.guessBox,
+                      isActiveCursor && styles.activeCursorBox,
                     ]}
                   >
                     <Text style={[
                       styles.letterText,
                       { fontSize: DYNAMIC_FONT_SIZE },
-                      isHint && styles.hintLetterText
+                      isHint && styles.hintLetterText,
+                      isGuess && styles.guessLetterText,
                     ]}>
-                      {isRevealed || isHint ? letter : ''}
+                      {displayChar}
                     </Text>
                   </View>
                 );
@@ -638,7 +690,7 @@ export default function PracticeScreen() {
             <>
               <View style={styles.customInputDisplay}>
                 <Text style={styles.customInputText}>
-                  {userInput || "TAP LETTERS..."}
+                  {(userInput.startsWith(confirmedPrefix) ? userInput : (confirmedPrefix + userInput)) || "TAP LETTERS..."}
                 </Text>
               </View>
 
@@ -860,6 +912,19 @@ const styles = StyleSheet.create({
   },
   hintLetterText: {
     color: '#d97706',
+  },
+  guessBox: {
+    backgroundColor: '#e0f2fe',
+    borderColor: '#0284c7',
+    borderWidth: 2.5,
+  },
+  guessLetterText: {
+    color: '#0369a1',
+  },
+  activeCursorBox: {
+    borderColor: '#2e7d32',
+    borderWidth: 2.5,
+    backgroundColor: '#f1f8e9',
   },
   hintPenaltyText: {
     fontSize: 14,
