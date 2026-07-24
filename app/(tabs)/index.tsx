@@ -737,6 +737,7 @@ export default function App() {
     const performGetHint = () => {
       setHintCount(prev => prev + 1);
       setHintedLettersCount(prev => prev + 1);
+      setUserInput('');
       setMessage(`💡 Hint: The next letter is "${nextLetter}"`);
     };
 
