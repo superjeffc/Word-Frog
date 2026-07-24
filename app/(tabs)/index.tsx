@@ -931,9 +931,6 @@ export default function App() {
         <View style={styles.welcomeContainer}>
           <Text style={styles.welcomeText}>
             Hello, {savedName.split('#')[0]}
-            {savedName.includes('#') && (
-              <Text style={styles.welcomeTag}>#{savedName.split('#')[1]}</Text>
-            )}
           </Text>
           <TouchableOpacity onPress={handleNotYou} style={styles.notYouBtn}>
             <Text style={styles.notYouText}>Not you?</Text>
