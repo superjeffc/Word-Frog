@@ -385,6 +385,7 @@ export default function PracticeScreen() {
     const performGetHint = () => {
       setHintCount(prev => prev + 1);
       setHintedLettersCount(prev => prev + 1);
+      setUserInput('');
       setMessage(`💡 Hint: The next letter is "${nextLetter}"`);
     };
 
