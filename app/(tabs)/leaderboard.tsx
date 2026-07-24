@@ -88,16 +88,27 @@ const LeaderboardScreen = () => {
     fetchLeaderboard();
   }, [fetchLeaderboard]);
 
+  const formatDisplayName = (rawName: string): string => {
+    if (!rawName) return '';
+    if (rawName.includes('#')) {
+      return rawName.split('#')[0].trim();
+    }
+    return rawName.trim();
+  };
+
   const renderItem = ({ item, index }: { item: any; index: number }) => {
-    const isMe = item.username === savedName;
+    const displayName = formatDisplayName(item.username);
+    const myCleanName = formatDisplayName(savedName);
+
+    const isMe = Boolean(savedName) && (
+      item.username === savedName ||
+      item.username?.replace('#', '') === savedName.replace('#', '') ||
+      (displayName.toLowerCase() === myCleanName.toLowerCase() && displayName.length > 0)
+    );
 
     const displayScore = (item.score !== undefined && item.score !== null)
       ? item.score.toFixed(2)
       : "0.00";
-
-    const nameParts = item.username ? item.username.split('#') : [];
-    const displayName = nameParts[0] || "";
-    const displayTag = nameParts[1] ? `#${nameParts[1]}` : "";
 
     return (
       <View style={[styles.row, isMe && styles.myRow]}>
@@ -109,7 +120,6 @@ const LeaderboardScreen = () => {
 
         <Text style={[styles.username, isMe && styles.myText]}>
           {displayName}
-          {displayTag ? <Text style={styles.usernameTag}> {displayTag}</Text> : ""}
           {isMe ? " 🐸" : ""}
         </Text>
 
