@@ -63,6 +63,17 @@ const isValidSuffix = (suffix: string) => {
   return /^[A-Z0-9]{6}$/.test(suffix.trim().toUpperCase());
 };
 
+const getCleanName = (rawName: string): string => {
+  if (!rawName) return '';
+  let name = rawName.trim();
+  if (name.includes('#')) {
+    name = name.split('#')[0].trim();
+  } else if (name.length > 6 && /^[A-Z0-9]{6}$/.test(name.slice(-6))) {
+    name = name.slice(0, -6).trim();
+  }
+  return name;
+};
+
 export default function App() {
   const { width } = useWindowDimensions();
 
@@ -349,7 +360,7 @@ export default function App() {
   };
 
   const handleSetupName = () => {
-    const base = savedName ? savedName.split('#')[0] : "";
+    const base = savedName ? getCleanName(savedName) : "";
     setTempName(base);
     setShowNameModal(true);
   };
@@ -368,6 +379,8 @@ export default function App() {
       const parts = trimmed.split('#');
       baseName = parts[0].trim();
       suffix = parts[1].trim();
+    } else {
+      baseName = getCleanName(trimmed);
     }
 
     if (!baseName) {
@@ -402,7 +415,7 @@ export default function App() {
 
     await AsyncStorage.setItem('last_frog_name', finalName);
     setSavedName(finalName);
-    setLeaderboardName(finalName);
+    setLeaderboardName(baseName);
     setShowNameModal(false);
     await checkIfAlreadySolved(finalName);
   };
@@ -413,7 +426,7 @@ export default function App() {
       const saved = await AsyncStorage.getItem('last_frog_name');
       if (saved) {
         setSavedName(saved);
-        setLeaderboardName(saved);
+        setLeaderboardName(getCleanName(saved));
         await checkIfAlreadySolved(saved);
       } else {
         // Only show rules for first-time users (no saved name)
@@ -540,6 +553,10 @@ export default function App() {
     try {
       const localDate = new Date().toLocaleDateString('en-CA');
       let currentName = name;
+      if (!currentName.includes('#')) {
+        currentName = `${getCleanName(name)}#${generateAlphanumericSuffix()}`;
+      }
+
       let response = await fetch("https://wordfrogleaderboard.superjeffc.com/submit", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -585,7 +602,7 @@ export default function App() {
         if (currentName !== name) {
           await AsyncStorage.setItem('last_frog_name', currentName);
           setSavedName(currentName);
-          setLeaderboardName(currentName);
+          setLeaderboardName(getCleanName(currentName));
         }
       } else {
         throw new Error(result.error || "Submission failed");
@@ -611,6 +628,8 @@ export default function App() {
       const parts = trimmed.split('#');
       baseName = parts[0].trim();
       suffix = parts[1].trim();
+    } else {
+      baseName = getCleanName(trimmed);
     }
 
     if (!baseName) {
@@ -687,7 +706,7 @@ export default function App() {
         // Save name for next time
         await AsyncStorage.setItem('last_frog_name', finalName);
         setSavedName(finalName);
-        setLeaderboardName(finalName);
+        setLeaderboardName(baseName);
       } else {
         throw new Error(result.error || "Submission failed");
       }
@@ -1064,8 +1083,8 @@ export default function App() {
                         style={styles.leaderboardInput}
                         placeholder="Enter Name for Leaderboard"
                         value={leaderboardName}
-                        onChangeText={setLeaderboardName}
-                        maxLength={15}
+                        onChangeText={(val) => setLeaderboardName(val.replace(/#/g, ''))}
+                        maxLength={12}
                       />
                       <TouchableOpacity
                         style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
@@ -1252,11 +1271,11 @@ export default function App() {
               
               <TextInput
                 style={styles.leaderboardInput}
-                placeholder="Enter Name (max 15 chars)"
+                placeholder="Enter Name (max 12 chars)"
                 placeholderTextColor="#999"
                 value={tempName}
-                onChangeText={setTempName}
-                maxLength={15}
+                onChangeText={(val) => setTempName(val.replace(/#/g, ''))}
+                maxLength={12}
                 autoFocus={true}
                 onSubmitEditing={saveName}
               />
