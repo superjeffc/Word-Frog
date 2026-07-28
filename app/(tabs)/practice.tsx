@@ -55,6 +55,17 @@ const isValidSuffix = (suffix: string) => {
   return /^[A-Z0-9]{6}$/.test(suffix.trim().toUpperCase());
 };
 
+const getCleanName = (rawName: string): string => {
+  if (!rawName) return '';
+  let name = rawName.trim();
+  if (name.includes('#')) {
+    name = name.split('#')[0].trim();
+  } else if (name.length > 6 && /^[A-Z0-9]{6}$/.test(name.slice(-6))) {
+    name = name.slice(0, -6).trim();
+  }
+  return name;
+};
+
 export default function PracticeScreen() {
   const { width } = useWindowDimensions();
 
@@ -186,7 +197,7 @@ export default function PracticeScreen() {
   };
 
   const handleSetupName = () => {
-    const base = savedName ? savedName.split('#')[0] : "";
+    const base = savedName ? getCleanName(savedName) : "";
     setTempName(base);
     setShowNameModal(true);
   };
@@ -205,6 +216,8 @@ export default function PracticeScreen() {
       const parts = trimmed.split('#');
       baseName = parts[0].trim();
       suffix = parts[1].trim();
+    } else {
+      baseName = getCleanName(trimmed);
     }
 
     if (!baseName) {
@@ -811,11 +824,11 @@ export default function PracticeScreen() {
               
               <TextInput
                 style={styles.leaderboardInput}
-                placeholder="Enter Name (max 15 chars)"
+                placeholder="Enter Name (max 12 chars)"
                 placeholderTextColor="#999"
                 value={tempName}
-                onChangeText={setTempName}
-                maxLength={15}
+                onChangeText={(val) => setTempName(val.replace(/#/g, ''))}
+                maxLength={12}
                 autoFocus={true}
                 onSubmitEditing={saveName}
               />

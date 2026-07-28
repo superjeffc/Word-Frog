@@ -67,6 +67,28 @@ const LeaderboardScreen = () => {
     };
   }, []);
 
+  const getCleanName = (rawName: string): string => {
+    if (!rawName) return '';
+    let name = rawName.trim();
+    if (name.includes('#')) {
+      name = name.split('#')[0].trim();
+    } else if (name.length > 6 && /^[A-Z0-9]{6}$/.test(name.slice(-6))) {
+      name = name.slice(0, -6).trim();
+    }
+    return name;
+  };
+
+  const getItemTag = (rawName: string): string => {
+    if (!rawName) return '';
+    if (rawName.includes('#')) {
+      return rawName.split('#')[1].trim();
+    }
+    if (rawName.length > 6 && /^[A-Z0-9]{6}$/.test(rawName.slice(-6))) {
+      return rawName.slice(-6).trim();
+    }
+    return '';
+  };
+
   const loadStoredName = async () => {
     try {
       const name = await AsyncStorage.getItem('last_frog_name');
@@ -89,20 +111,19 @@ const LeaderboardScreen = () => {
   }, [fetchLeaderboard]);
 
   const formatDisplayName = (rawName: string): string => {
-    if (!rawName) return '';
-    if (rawName.includes('#')) {
-      return rawName.split('#')[0].trim();
-    }
-    return rawName.trim();
+    return getCleanName(rawName);
   };
 
   const renderItem = ({ item, index }: { item: any; index: number }) => {
     const displayName = formatDisplayName(item.username);
     const myCleanName = formatDisplayName(savedName);
 
+    const itemTag = getItemTag(item.username || '');
+    const savedTag = getItemTag(savedName || '');
+
     const isMe = Boolean(savedName) && (
-      item.username === savedName ||
-      item.username?.replace('#', '') === savedName.replace('#', '') ||
+      (Boolean(itemTag) && Boolean(savedTag) && itemTag.toUpperCase() === savedTag.toUpperCase()) ||
+      (item.username && item.username.toUpperCase() === savedName.toUpperCase()) ||
       (displayName.toLowerCase() === myCleanName.toLowerCase() && displayName.length > 0)
     );
 

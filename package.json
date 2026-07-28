@@ -11,7 +11,9 @@
     "ship-android": "eas build --platform android --profile production",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "deploy:leaderboard": "cd leaderboard-worker && npx -y wrangler deploy",
+    "deploy:dictionary": "cd dictionary-worker && npx -y wrangler deploy"
   },
   "dependencies": {
     "@expo/ngrok": "^4.1.3",
