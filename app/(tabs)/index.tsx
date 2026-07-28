@@ -293,6 +293,11 @@ export default function App() {
   }, [startTime, isGameOver]); // Added startTime as a dependency
 
   const checkIfAlreadySolved = async (nameToCheck: string) => {
+    if (!nameToCheck || !nameToCheck.trim()) {
+      setAlreadySolved(false);
+      return;
+    }
+
     // 1. Check local storage first
     try {
       const localDate = new Date().toLocaleDateString('en-CA');
@@ -305,11 +310,6 @@ export default function App() {
       console.error("Error checking local solved status:", e);
     }
 
-    if (!nameToCheck.trim()) {
-      setAlreadySolved(false);
-      return;
-    }
-
     // 2. Fallback to server check
     try {
       const localDate = new Date().toLocaleDateString('en-CA');
@@ -320,9 +320,13 @@ export default function App() {
       const json = await response.json();
       const players = json.players || (Array.isArray(json) ? json : []);
 
-      const found = players.some(
-        (player: any) => player.username && player.username.trim().toLowerCase() === nameToCheck.trim().toLowerCase()
-      );
+      const cleanCheck = getCleanName(nameToCheck).toLowerCase();
+
+      const found = players.some((player: any) => {
+        if (!player.username) return false;
+        const pClean = getCleanName(player.username).toLowerCase();
+        return pClean === cleanCheck;
+      });
 
       if (found) {
         await AsyncStorage.setItem('last_solved_date', localDate);
@@ -338,6 +342,7 @@ export default function App() {
   const handleNotYou = async () => {
     const proceed = async () => {
       await AsyncStorage.removeItem('last_frog_name');
+      await AsyncStorage.removeItem('last_solved_date');
       setSavedName("");
       setLeaderboardName("");
       setAlreadySolved(false);
