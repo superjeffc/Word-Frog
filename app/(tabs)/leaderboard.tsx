@@ -121,11 +121,15 @@ const LeaderboardScreen = () => {
     const itemTag = getItemTag(item.username || '');
     const savedTag = getItemTag(savedName || '');
 
-    const isMe = Boolean(savedName) && (
-      (Boolean(itemTag) && Boolean(savedTag) && itemTag.toUpperCase() === savedTag.toUpperCase()) ||
-      (item.username && item.username.toUpperCase() === savedName.toUpperCase()) ||
-      (displayName.toLowerCase() === myCleanName.toLowerCase() && displayName.length > 0)
-    );
+    let isMe = false;
+    if (savedName) {
+      if (itemTag && savedTag) {
+        isMe = itemTag.toUpperCase() === savedTag.toUpperCase();
+      } else {
+        isMe = Boolean(item.username && item.username.toUpperCase() === savedName.toUpperCase()) ||
+          (displayName.toLowerCase() === myCleanName.toLowerCase() && displayName.length > 0 && !itemTag && !savedTag);
+      }
+    }
 
     const displayScore = (item.score !== undefined && item.score !== null)
       ? item.score.toFixed(2)
