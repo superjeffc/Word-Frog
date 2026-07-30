@@ -39,10 +39,17 @@ if (!fs.existsSync(tempDir)) {
 console.log("Preparing batches for bulk upload...");
 for (let i = 0; i < dictionary.length; i += BATCH_SIZE) {
   const batchIndex = i / BATCH_SIZE + 1;
-  const batch = dictionary.slice(i, i + BATCH_SIZE).map(word => ({
-    key: word.trim().toUpperCase(),
-    value: "1"
-  }));
+  const batch = dictionary.slice(i, i + BATCH_SIZE)
+    .map(word => word.trim().toUpperCase())
+    .filter(word => {
+      if (!/^[A-Z]+$/.test(word)) return false;
+      if (word.length === 1 && word !== 'A' && word !== 'I') return false;
+      return true;
+    })
+    .map(word => ({
+      key: word,
+      value: "1"
+    }));
 
   const batchFile = path.join(tempDir, `batch-${batchIndex}.json`);
   fs.writeFileSync(batchFile, JSON.stringify(batch));

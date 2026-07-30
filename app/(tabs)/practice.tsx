@@ -475,7 +475,8 @@ export default function PracticeScreen() {
 
   const handleSubmit = async () => {
     if (isGameOver || isValidating) return;
-    const guess = userInput.trim().toUpperCase();
+    const effectiveInput = userInput.startsWith(confirmedPrefix) ? userInput : (confirmedPrefix + userInput);
+    const guess = effectiveInput.trim().toUpperCase();
 
     if (!guess) {
       return;

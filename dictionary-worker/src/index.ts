@@ -29,6 +29,19 @@ export default {
         }
 
         const normalized = word.trim().toUpperCase();
+
+        if (!/^[A-Z]+$/.test(normalized)) {
+          return new Response(JSON.stringify({ valid: false }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        if (normalized.length === 1 && normalized !== "A" && normalized !== "I") {
+          return new Response(JSON.stringify({ valid: false }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
         const value = await env.DICTIONARY_KV.get(normalized);
         const isValid = value !== null;
 
