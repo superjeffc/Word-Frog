@@ -280,8 +280,8 @@ export default function App() {
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
 
-    // Only start the ticking clock if the game has begun AND isn't over
-    if (startTime && !isGameOver) {
+    // Only start the ticking clock if the game has begun, isn't over, AND isn't already solved
+    if (startTime && !isGameOver && !alreadySolved) {
       interval = setInterval(() => {
         setCurrentTime(new Date());
       }, 1000);
@@ -290,7 +290,7 @@ export default function App() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [startTime, isGameOver]); // Added startTime as a dependency
+  }, [startTime, isGameOver, alreadySolved]);
 
   const checkIfAlreadySolved = async (nameToCheck: string) => {
     if (!nameToCheck || !nameToCheck.trim()) {
@@ -481,8 +481,8 @@ export default function App() {
   }, [revealedPrefix, DYNAMIC_TILE_SIZE]);
 
   const getTimeElapsed = () => {
-    // If the game hasn't started yet, or start time isn't set, show 0
-    if (!startTime) return "0 seconds";
+    // If the game hasn't started yet, or start time isn't set, or already solved, show 0
+    if (!startTime || alreadySolved) return "0 seconds";
 
     const startMs = startTime.getTime();
     const endMs = (isGameOver && endTime) ? endTime.getTime() : currentTime.getTime();
@@ -974,7 +974,7 @@ export default function App() {
           <View style={styles.titleRow}>
             <Text style={styles.title}>WORD FROG</Text>
           </View>
-          <Text style={styles.stats}>Turn: {isGameOver ? turnCount : turnCount + 1} | {getTimeElapsed()}</Text>
+          <Text style={styles.stats}>{alreadySolved ? "Solved for today!" : `Turn: ${isGameOver ? turnCount : turnCount + 1} | ${getTimeElapsed()}`}</Text>
         </View>
 
         {alreadySolved ? (
