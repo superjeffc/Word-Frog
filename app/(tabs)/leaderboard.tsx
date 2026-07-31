@@ -132,8 +132,8 @@ const LeaderboardScreen = () => {
     }
 
     const displayScore = (item.score !== undefined && item.score !== null)
-      ? item.score.toFixed(2)
-      : "0.00";
+      ? item.score.toFixed(4)
+      : "0.0000";
 
     return (
       <View style={[styles.row, isMe && styles.myRow]}>
