@@ -102,35 +102,7 @@ export default function App() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [tempName, setTempName] = useState("");
 
-  // 2. Use useEffect to call your async function once on mount
-  useEffect(() => {
-    let isMounted = true;
 
-    getWordOfTheDay().then(async (word) => {
-      if (isMounted && word) {
-        setTargetWord(word);
-        setRevealedPrefix(word[0]);
-        setMessage(`"${word.length} letters. Starts with "${word[0]}"`);
-        
-        // If the user already has a saved name, they won't see the rules modal.
-        // Start the game timer immediately once the word is ready.
-        const saved = await AsyncStorage.getItem('last_frog_name');
-        if (saved) {
-          const now = new Date();
-          setStartTime(now);
-          setCurrentTime(now);
-        }
-        
-        setAppIsReady(true);
-      }
-    }).catch(err => {
-      // Even if it fails, set ready to true so we can
-      // show an error message instead of a spinner
-      setAppIsReady(true);
-    });
-
-    return () => { isMounted = false; };
-  }, []);
 
   // Calculate how much space is available for the whole row
   const AVAILABLE_WIDTH = width - 40; // Total screen width minus side padding
@@ -240,58 +212,7 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    async function prepare() {
-      try {
-        // Simulating a tiny delay for the dictionary setup
-        setAppIsReady(true);
-      } catch (e) {
-        console.warn(e);
-      }
-    }
-
-    async function versionCheck() {
-      const VERSION_CHECK_URL = 'https://wordfrog.superjeffc.com/version.json';
-
-      try {
-        // Add a timestamp to the URL to bypass any ISP or CDN caching
-        const response = await fetch(`${VERSION_CHECK_URL}?t=${Date.now()}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache',
-          },
-        });
-
-        const data = await response.json();
-
-        if (data.version > CURRENT_VERSION) {
-          notify("Update Available!", "Please download the latest version before continuing.");
-        }
-      } catch (error) {
-        console.error("Version check failed:", error);
-      }
-    }
-
-    versionCheck();
-    prepare();
-  }, []);
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-
-    // Only start the ticking clock if the game has begun, isn't over, AND isn't already solved
-    if (startTime && !isGameOver && !alreadySolved) {
-      interval = setInterval(() => {
-        setCurrentTime(new Date());
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [startTime, isGameOver, alreadySolved]);
-
+  // Check if today's puzzle is already solved
   const checkIfAlreadySolved = async (nameToCheck: string) => {
     if (!nameToCheck || !nameToCheck.trim()) {
       setAlreadySolved(false);
@@ -310,10 +231,17 @@ export default function App() {
       console.error("Error checking local solved status:", e);
     }
 
-    // 2. Fallback to server check
+    // 2. Fallback to server check (with 3-second timeout)
     try {
       const localDate = new Date().toLocaleDateString('en-CA');
-      const response = await fetch(`https://wordfrogleaderboard.superjeffc.com/leaderboard?date=${localDate}&v=2`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch(`https://wordfrogleaderboard.superjeffc.com/leaderboard?date=${localDate}&v=2`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
@@ -338,6 +266,74 @@ export default function App() {
       setAlreadySolved(false);
     }
   };
+
+  // Single mount effect: Loads puzzle word, user info, and solved status before setting appIsReady
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initializeApp() {
+      try {
+        // 1. Fetch word of the day
+        const word = await getWordOfTheDay();
+        if (isMounted && word) {
+          setTargetWord(word);
+          setRevealedPrefix(word[0]);
+          setMessage(`"${word.length} letters. Starts with "${word[0]}"`);
+        }
+
+        // 2. Check saved user name & solved status
+        const saved = await AsyncStorage.getItem('last_frog_name');
+        if (isMounted) {
+          if (saved) {
+            setSavedName(saved);
+            setLeaderboardName(getCleanName(saved));
+            const now = new Date();
+            setStartTime(now);
+            setCurrentTime(now);
+            await checkIfAlreadySolved(saved);
+          } else {
+            setShowRules(true);
+            await checkIfAlreadySolved("");
+          }
+        }
+      } catch (err) {
+        console.error("Initialization error:", err);
+      } finally {
+        if (isMounted) {
+          setAppIsReady(true);
+        }
+      }
+    }
+
+    async function versionCheck() {
+      const VERSION_CHECK_URL = 'https://wordfrog.superjeffc.com/version.json';
+
+      try {
+        const response = await fetch(`${VERSION_CHECK_URL}?t=${Date.now()}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+        });
+
+        const data = await response.json();
+
+        if (data.version > CURRENT_VERSION) {
+          notify("Update Available!", "Please download the latest version before continuing.");
+        }
+      } catch (error) {
+        console.error("Version check failed:", error);
+      }
+    }
+
+    versionCheck();
+    initializeApp();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleNotYou = async () => {
     const proceed = async () => {
@@ -425,22 +421,20 @@ export default function App() {
     await checkIfAlreadySolved(finalName);
   };
 
-  // Load saved name and check if solved on mount
+  // Start ticking clock once game has begun and is not over or solved
   useEffect(() => {
-    const initNameAndRules = async () => {
-      const saved = await AsyncStorage.getItem('last_frog_name');
-      if (saved) {
-        setSavedName(saved);
-        setLeaderboardName(getCleanName(saved));
-        await checkIfAlreadySolved(saved);
-      } else {
-        // Only show rules for first-time users (no saved name)
-        setShowRules(true);
-        await checkIfAlreadySolved("");
-      }
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    if (startTime && !isGameOver && !alreadySolved) {
+      interval = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
     };
-    initNameAndRules();
-  }, []);
+  }, [startTime, isGameOver, alreadySolved]);
 
   // 1. Setup the Animation Value
   // We start at 0 (the first letter)
