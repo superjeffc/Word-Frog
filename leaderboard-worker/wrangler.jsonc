@@ -6,7 +6,18 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "word-frog-leaderboard"
+      "database_name": "word-frog-leaderboard",
+      "database_id": "4b9ab610-32a5-4164-a681-5ced123f7b05"
     }
-  ]
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "STATS_KV",
+      "id": "b8bd8649853c4d89942144ddf12109ad"
+    }
+  ],
+  "triggers": {
+    "crons": ["0 0 * * *"]
+  }
 }
+

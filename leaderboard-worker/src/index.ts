@@ -1,9 +1,25 @@
 export interface Env {
   DB: D1Database;
+  STATS_KV: KVNamespace;
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  // Scheduled trigger for 24-hour cleanup
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil((async () => {
+      try {
+        // Keep only records from today and yesterday (last 24-48 hours window to cover all timezones)
+        await env.DB.prepare(`
+          DELETE FROM leaderboard 
+          WHERE game_date < date('now', '-1 day')
+        `).run();
+      } catch (err) {
+        console.error("Scheduled cleanup error:", err);
+      }
+    })());
+  },
+
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     // Shared headers for CORS and JSON
@@ -19,7 +35,7 @@ export default {
       return new Response(null, { headers });
     }
 
-    // 2. Health Check (Visit your subdomain in a browser to see this)
+    // 2. Health Check
     if (url.pathname === "/" || url.pathname === "") {
       return new Response(JSON.stringify({
         status: "online",
@@ -28,50 +44,90 @@ export default {
       }), { headers });
     }
 
+    // Helper to get total_all_time count (KV -> D1 game_stats fallback)
+    async function getTotalAllTime(): Promise<number> {
+      try {
+        if (env.STATS_KV) {
+          const kvVal = await env.STATS_KV.get("total_all_time");
+          if (kvVal !== null) {
+            return parseInt(kvVal, 10) || 0;
+          }
+        }
+      } catch (e) {
+        console.error("KV read error:", e);
+      }
+
+      // Fallback to D1 game_stats table
+      try {
+        const row = await env.DB.prepare(
+          "SELECT stat_value FROM game_stats WHERE stat_key = 'total_all_time'"
+        ).first<{ stat_value: number }>();
+        const count = row?.stat_value ?? 0;
+        if (env.STATS_KV && count > 0) {
+          ctx.waitUntil(env.STATS_KV.put("total_all_time", count.toString()));
+        }
+        return count;
+      } catch (e) {
+        console.error("D1 game_stats read error:", e);
+        return 0;
+      }
+    }
+
     // 3. GET: Fetch today's top 10 scores
     if (request.method === "GET" && url.pathname === "/leaderboard") {
-      // If date is missing, default to the server's current UTC date
       const clientDate = url.searchParams.get("date") || new Date().toISOString().split('T')[0];
       const isNewVersion = url.searchParams.get("v") === "2";
 
       try {
-        const [leaderboard, stats] = await env.DB.batch([
-          // Query 1: The actual leaderboard
+        // Run index-optimized queries in batch
+        const [leaderboard, todayStats, totalAllTime] = await Promise.all([
+          // Query 1: Top 10 uses index idx_leaderboard_date_score (game_date, score DESC)
           env.DB.prepare(`
             SELECT username, score 
             FROM leaderboard 
             WHERE game_date = ?
             ORDER BY score DESC 
             LIMIT 10
-          `).bind(clientDate),
+          `).bind(clientDate).all(),
 
-          // Query 2: The Solve Counters
+          // Query 2: Total today uses covering index idx_leaderboard_date
           env.DB.prepare(`
-            SELECT 
-              (SELECT COUNT(*) FROM leaderboard WHERE game_date = ?) as total_today,
-              (SELECT COUNT(*) FROM leaderboard) as total_all_time
-          `).bind(clientDate)
+            SELECT COUNT(*) as total_today 
+            FROM leaderboard 
+            WHERE game_date = ?
+          `).bind(clientDate).first<{ total_today: number }>(),
+
+          // Query 3: Total all-time read from KV (0 D1 row reads)
+          getTotalAllTime()
         ]);
 
         // --- MASKING LOGIC START ---
-        // Regex to check if the username is a UUID (Standard 8-4-4-4-12 format)
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
         const maskedPlayers = (leaderboard.results || []).map((player: any) => ({
           ...player,
           username: uuidRegex.test(player.username) ? "Anonymous Frog" : player.username
         }));
         // --- MASKING LOGIC END ---
 
+        const responseHeaders = {
+          ...headers,
+          // Short edge cache to absorb bursts without stale UX
+          "Cache-Control": "public, max-age=30, stale-while-revalidate=60"
+        };
+
         if (isNewVersion) {
           return Response.json({
             players: maskedPlayers,
-            stats: (stats.results || [])[0]
-          }, { headers });
+            stats: {
+              total_today: todayStats?.total_today ?? 0,
+              total_all_time: totalAllTime
+            }
+          }, { headers: responseHeaders });
         } else {
-          return Response.json(maskedPlayers, { headers });
+          return Response.json(maskedPlayers, { headers: responseHeaders });
         }
       } catch (err) {
+        console.error("Leaderboard read error:", err);
         return new Response(JSON.stringify({ error: "Database read error" }), { status: 500, headers });
       }
     }
@@ -98,13 +154,14 @@ export default {
 
         // 3. Check if we have a UUID (New Client) or not (Old Client)
         let result: any;
+        let isNewInsert = false;
+
         if (uuid) {
-          /**
-           * UPSERT Logic: 
-           * If the UUID exists, update the name (replacing 'Anonymous Frog').
-           * If the UUID doesn't exist, insert it.
-           * If the NAME is already taken by a DIFFERENT UUID, the 'username' constraint handles it.
-           */
+          // Check if this UUID already exists for today before inserting/updating
+          const existing = await env.DB.prepare(`
+            SELECT id, username FROM leaderboard WHERE uuid = ?
+          `).bind(uuid).first<{ id: number; username: string }>();
+
           result = await env.DB.prepare(`
             INSERT INTO leaderboard (username, score, game_date, uuid) 
             VALUES (?, ?, ?, ?) 
@@ -113,6 +170,10 @@ export default {
             WHERE uuid = EXCLUDED.uuid
           `).bind(cleanName, score, submissionDate, uuid).run();
 
+          // Only count as a new game completion if this UUID wasn't already recorded
+          if (!existing && result.meta.changes > 0) {
+            isNewInsert = true;
+          }
         } else {
           // Fallback for older clients without UUID
           result = await env.DB.prepare(`
@@ -120,6 +181,10 @@ export default {
             VALUES (?, ?, ?) 
             ON CONFLICT(username, game_date) DO NOTHING
           `).bind(cleanName, score, submissionDate).run();
+
+          if (result.meta.changes > 0) {
+            isNewInsert = true;
+          }
         }
 
         // 4. Check if the row was actually inserted (Conflict check)
@@ -128,6 +193,28 @@ export default {
             success: false,
             message: "This name is already taken for today's puzzle!"
           }), { status: 409, headers });
+        }
+
+        // 5. Update counters asynchronously if a new score was logged
+        if (isNewInsert) {
+          ctx.waitUntil((async () => {
+            try {
+              // Atomically increment counter in D1 game_stats table
+              const updated = await env.DB.prepare(`
+                INSERT INTO game_stats (stat_key, stat_value)
+                VALUES ('total_all_time', 1)
+                ON CONFLICT(stat_key) DO UPDATE SET stat_value = stat_value + 1
+                RETURNING stat_value
+              `).first<{ stat_value: number }>();
+
+              const newCount = updated?.stat_value;
+              if (env.STATS_KV && newCount !== undefined) {
+                await env.STATS_KV.put("total_all_time", newCount.toString());
+              }
+            } catch (err) {
+              console.error("Failed to update counter:", err);
+            }
+          })());
         }
 
         return new Response(JSON.stringify({ success: true }), { status: 201, headers });
@@ -144,8 +231,8 @@ export default {
       const isNewVersion = url.searchParams.get("v") === "2";
 
       try {
-        const [leaderboard, stats] = await env.DB.batch([
-          // Query 1: Top 10 Completions
+        const [leaderboard, todayStats, totalAllTime] = await Promise.all([
+          // Top 10 Completions
           env.DB.prepare(`
             SELECT 
               username, 
@@ -155,19 +242,20 @@ export default {
             GROUP BY username 
             ORDER BY total_days DESC, first_id ASC 
             LIMIT 10
-          `),
+          `).all(),
 
-          // Query 2: Global Stats (Total Today and All-Time)
+          // Total today
           env.DB.prepare(`
-            SELECT 
-              (SELECT COUNT(*) FROM leaderboard WHERE game_date = ?) as total_today,
-              (SELECT COUNT(*) FROM leaderboard) as total_all_time
-          `).bind(clientDate)
+            SELECT COUNT(*) as total_today 
+            FROM leaderboard 
+            WHERE game_date = ?
+          `).bind(clientDate).first<{ total_today: number }>(),
+
+          // Total all time from KV
+          getTotalAllTime()
         ]);
 
-        // Masking Logic: Swap UUIDs for "Anonymous Frog"
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
         const maskedPlayers = (leaderboard.results || []).map((player: any) => ({
           username: uuidRegex.test(player.username) ? "Anonymous Frog" : player.username,
           total_days: player.total_days
@@ -176,7 +264,10 @@ export default {
         if (isNewVersion) {
           return Response.json({
             players: maskedPlayers,
-            stats: (stats.results || [])[0]
+            stats: {
+              total_today: todayStats?.total_today ?? 0,
+              total_all_time: totalAllTime
+            }
           }, { headers });
         } else {
           return Response.json(maskedPlayers, { headers });
