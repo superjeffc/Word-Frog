@@ -109,12 +109,6 @@ export default {
         }));
         // --- MASKING LOGIC END ---
 
-        const responseHeaders = {
-          ...headers,
-          // Short edge cache to absorb bursts without stale UX
-          "Cache-Control": "public, max-age=30, stale-while-revalidate=60"
-        };
-
         if (isNewVersion) {
           return Response.json({
             players: maskedPlayers,
@@ -122,9 +116,9 @@ export default {
               total_today: todayStats?.total_today ?? 0,
               total_all_time: totalAllTime
             }
-          }, { headers: responseHeaders });
+          }, { headers });
         } else {
-          return Response.json(maskedPlayers, { headers: responseHeaders });
+          return Response.json(maskedPlayers, { headers });
         }
       } catch (err) {
         console.error("Leaderboard read error:", err);
