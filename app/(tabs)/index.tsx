@@ -231,40 +231,8 @@ export default function App() {
       console.error("Error checking local solved status:", e);
     }
 
-    // 2. Fallback to server check (with 3-second timeout)
-    try {
-      const localDate = new Date().toLocaleDateString('en-CA');
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-      const response = await fetch(`https://wordfrogleaderboard.superjeffc.com/leaderboard?date=${localDate}&v=2`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-      const json = await response.json();
-      const players = json.players || (Array.isArray(json) ? json : []);
-
-      const cleanCheck = getCleanName(nameToCheck).toLowerCase();
-
-      const found = players.some((player: any) => {
-        if (!player.username) return false;
-        const pClean = getCleanName(player.username).toLowerCase();
-        return pClean === cleanCheck;
-      });
-
-      if (found) {
-        await AsyncStorage.setItem('last_solved_date', localDate);
-      }
-
-      setAlreadySolved(found);
-    } catch (error) {
-      console.error("Error checking solved status:", error);
-      setAlreadySolved(false);
-    }
+    // 2. No server fallback - Rely solely on local storage to avoid slow network fetch
+    setAlreadySolved(false);
   };
 
   // Single mount effect: Loads puzzle word, user info, and solved status before setting appIsReady
@@ -888,9 +856,12 @@ export default function App() {
 
       // Save solve date to local storage immediately
       const localDate = new Date().toLocaleDateString('en-CA');
-      AsyncStorage.setItem('last_solved_date', localDate).catch(err => 
-        console.error("Error saving solved date:", err)
-      );
+      try {
+        await AsyncStorage.setItem('last_solved_date', localDate);
+        setAlreadySolved(true);
+      } catch (err) {
+        console.error("Error saving solved date:", err);
+      }
 
       // Calculate score immediately to send it
       const nowScore = calculateScore(turnCount + 1, hintCount, now);
