@@ -6,8 +6,14 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     
+    const allowedOrigins = [
+      "https://wordfrog.superjeffc.com",
+    ];
+    const origin = request.headers.get("Origin");
+    const allowOrigin = origin && allowedOrigins.includes(origin) ? origin : "https://wordfrog.superjeffc.com";
+
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": allowOrigin,
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     };
