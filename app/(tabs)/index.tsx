@@ -231,8 +231,37 @@ export default function App() {
       console.error("Error checking local solved status:", e);
     }
 
-    // 2. No server fallback - Rely solely on local storage to avoid slow network fetch
-    setAlreadySolved(false);
+    // 2. Non-blocking background verification against server if not solved locally
+    (async () => {
+      try {
+        const localDate = new Date().toLocaleDateString('en-CA');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+        const response = await fetch(`https://wordfrogleaderboard.superjeffc.com/leaderboard?date=${localDate}&v=2`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) return;
+        const json = await response.json();
+        const players = json.players || (Array.isArray(json) ? json : []);
+        const cleanCheck = getCleanName(nameToCheck).toLowerCase();
+
+        const found = players.some((player: any) => {
+          if (!player.username) return false;
+          const pClean = getCleanName(player.username).toLowerCase();
+          return pClean === cleanCheck;
+        });
+
+        if (found) {
+          await AsyncStorage.setItem('last_solved_date', localDate);
+          setAlreadySolved(true);
+        }
+      } catch (error) {
+        // Silently ignore background fetch errors
+      }
+    })();
   };
 
   // Single mount effect: Loads puzzle word, user info, and solved status before setting appIsReady
