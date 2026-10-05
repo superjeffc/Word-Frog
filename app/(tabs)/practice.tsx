@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { KEYBOARD_ROWS } from '../../constants/keyboard';
 
-const getRandomWord = async () => {
+export const getRandomWord = async () => {
   const API_URL = 'https://word-frog-dictionary-api.superjeffc.workers.dev/random';
   try {
     const response = await fetch(API_URL);
