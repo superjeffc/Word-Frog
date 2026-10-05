@@ -49,7 +49,7 @@ const LeaderboardScreen = () => {
       setShowRefreshedText(true);
       timeoutRef.current = setTimeout(() => {
         setShowRefreshedText(false);
-      }, 1500);
+      }, 1500) as unknown as NodeJS.Timeout;
 
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
