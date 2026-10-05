@@ -22,12 +22,7 @@ import {
 } from 'react-native';
 
 import { CURRENT_VERSION } from '../../constants/version';
-
-const KEYBOARD_ROWS = [
-  ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-  ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-  ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "⌫"]
-];
+import { KEYBOARD_ROWS } from '../../constants/keyboard';
 
 const getWordOfTheDay = async () => {
   // Get the user's local date in YYYY-MM-DD format (e.g., "2026-01-17")
