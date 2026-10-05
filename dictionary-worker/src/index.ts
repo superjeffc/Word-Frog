@@ -6,19 +6,30 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     
-    const allowedOrigins = [
-      "https://wordfrog.superjeffc.com",
-    ];
     const origin = request.headers.get("Origin");
-    const allowOrigin = origin && allowedOrigins.includes(origin) ? origin : "https://wordfrog.superjeffc.com";
 
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": allowOrigin,
+    const isOriginAllowed = (originToCheck: string | null): boolean => {
+      if (!originToCheck) return false;
+      if (originToCheck === "https://wordfrog.superjeffc.com") return true;
+      // Allow localhost and local IP addresses for development/testing
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(originToCheck)) return true;
+      return false;
+    };
+
+    const corsHeaders: Record<string, string> = {
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     };
 
+    if (origin && isOriginAllowed(origin)) {
+      corsHeaders["Access-Control-Allow-Origin"] = origin;
+      corsHeaders["Vary"] = "Origin";
+    }
+
     if (request.method === "OPTIONS") {
+      if (origin && !isOriginAllowed(origin)) {
+        return new Response(null, { status: 403 });
+      }
       return new Response(null, { headers: corsHeaders });
     }
 
