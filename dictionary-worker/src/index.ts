@@ -3,7 +3,7 @@ export interface Env {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     
     const origin = request.headers.get("Origin");
@@ -86,13 +86,26 @@ export default {
         const dd = String(randomDate.getUTCDate()).padStart(2, '0');
         const dateString = `${yyyy}-${mm}-${dd}`;
 
+        const cacheKey = `word_of_day_${dateString}`;
+        let cachedWord = await env.DICTIONARY_KV.get(cacheKey);
+
+        if (cachedWord) {
+          return new Response(JSON.stringify({ word: cachedWord.toUpperCase() }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
         const res = await fetch(`https://wordfrogwordoftheday.superjeffc.com/getword?date=${dateString}`);
         if (!res.ok) {
           throw new Error("Failed to fetch word from daily API");
         }
         
         const json = await res.json() as { word: string };
-        return new Response(JSON.stringify({ word: json.word.toUpperCase() }), {
+        const word = json.word;
+
+        ctx.waitUntil(env.DICTIONARY_KV.put(cacheKey, word));
+
+        return new Response(JSON.stringify({ word: word.toUpperCase() }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       } catch (err) {
