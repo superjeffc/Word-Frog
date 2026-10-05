@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
 
 const dictionaryPath = path.resolve(__dirname, '../../constants/dictionary.js');
 if (!fs.existsSync(dictionaryPath)) {
@@ -70,22 +72,39 @@ try {
   // Ignore and use default binding name
 }
 
-for (let batchIndex = 1; batchIndex <= totalBatches; batchIndex++) {
-  const batchFile = path.join(tempDir, `batch-${batchIndex}.json`);
-  console.log(`Uploading batch ${batchIndex}/${totalBatches}...`);
-  try {
-    execSync(`npx wrangler kv bulk put --binding ${bindingName} "${batchFile}"`, { stdio: 'inherit' });
-  } catch (error) {
-    console.error(`Error uploading batch ${batchIndex}:`, error.message);
-    console.log("Make sure you are logged in to Cloudflare ('wrangler login') and have configured your KV namespace binding.");
-    process.exit(1);
+async function uploadBatches() {
+  const batchIndices = Array.from({ length: totalBatches }, (_, i) => i + 1);
+  const CHUNK_SIZE = 5;
+
+  for (let i = 0; i < batchIndices.length; i += CHUNK_SIZE) {
+    const chunk = batchIndices.slice(i, i + CHUNK_SIZE);
+    console.log(`Uploading batches ${chunk.join(', ')} of ${totalBatches}...`);
+
+    await Promise.all(
+      chunk.map(async (batchIndex) => {
+        const batchFile = path.join(tempDir, `batch-${batchIndex}.json`);
+        try {
+          const { stdout, stderr } = await execPromise(`npx wrangler kv bulk put --binding ${bindingName} "${batchFile}"`);
+          if (stdout) console.log(stdout.trim());
+          if (stderr) console.error(stderr.trim());
+        } catch (error) {
+          console.error(`Error uploading batch ${batchIndex}:`, error.message);
+          if (error.stdout) console.log(error.stdout.trim());
+          if (error.stderr) console.error(error.stderr.trim());
+          console.log("Make sure you are logged in to Cloudflare ('wrangler login') and have configured your KV namespace binding.");
+          process.exit(1);
+        }
+      })
+    );
   }
+
+  for (let batchIndex = 1; batchIndex <= totalBatches; batchIndex++) {
+    const batchFile = path.join(tempDir, `batch-${batchIndex}.json`);
+    if (fs.existsSync(batchFile)) fs.unlinkSync(batchFile);
+  }
+  fs.rmdirSync(tempDir);
+
+  console.log("Bulk upload finished successfully!");
 }
 
-for (let batchIndex = 1; batchIndex <= totalBatches; batchIndex++) {
-  const batchFile = path.join(tempDir, `batch-${batchIndex}.json`);
-  if (fs.existsSync(batchFile)) fs.unlinkSync(batchFile);
-}
-fs.rmdirSync(tempDir);
-
-console.log("Bulk upload finished successfully!");
+uploadBatches();
