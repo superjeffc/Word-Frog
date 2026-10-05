@@ -7,11 +7,7 @@ describe('Dictionary Worker', () => {
   const LOCAL_ORIGIN = "http://localhost:3000";
   const INVALID_ORIGIN = "https://evil.com";
 
-  beforeAll(async () => {
-    // Populate KV mock for tests
-    await env.DICTIONARY_KV.put('APPLE', 'true');
-    await env.DICTIONARY_KV.put('BANANA', 'true');
-    // For random endpoint mock
+  const setupFetchMock = () => {
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url.includes('wordfrogwordoftheday.superjeffc.com')) {
         return Promise.resolve(new Response(JSON.stringify({ word: 'frog' }), {
@@ -22,10 +18,19 @@ describe('Dictionary Worker', () => {
       return Promise.reject(new Error("Network Error"));
     });
     vi.stubGlobal('fetch', fetchMock);
+  };
+
+  beforeAll(async () => {
+    // Populate KV mock for tests
+    await env.DICTIONARY_KV.put('APPLE', 'true');
+    await env.DICTIONARY_KV.put('BANANA', 'true');
+    // For random endpoint mock
+    setupFetchMock();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    setupFetchMock();
   });
 
   it('responds with 404 for unknown paths', async () => {

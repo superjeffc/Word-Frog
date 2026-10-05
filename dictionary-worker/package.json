@@ -8,6 +8,8 @@
     "wrangler": "^3.99.0"
   },
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "upload": "node scripts/upload.js"
