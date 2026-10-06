@@ -882,7 +882,6 @@ export default function App() {
       const localDate = new Date().toLocaleDateString('en-CA');
       try {
         await AsyncStorage.setItem('last_solved_date', localDate);
-        setAlreadySolved(true);
       } catch (err) {
         console.error("Error saving solved date:", err);
       }
