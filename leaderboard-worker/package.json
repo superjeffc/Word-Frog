@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260702.1",
-    "wrangler": "^3.114.17"
+    "wrangler": "^4.157.0"
   },
   "scripts": {
     "dev": "wrangler dev",
