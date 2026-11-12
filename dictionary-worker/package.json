@@ -4,7 +4,7 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.12.21",
     "@cloudflare/workers-types": "^4.20260702.1",
-    "vitest": "^3.2.7",
+    "vitest": "^5.1.0",
     "wrangler": "~4.107.0"
   },
   "scripts": {
