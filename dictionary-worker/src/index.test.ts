@@ -8,8 +8,9 @@ describe('Dictionary Worker', () => {
   const INVALID_ORIGIN = "https://evil.com";
 
   const setupFetchMock = () => {
-    const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url.includes('wordfrogwordoftheday.superjeffc.com')) {
+    const fetchMock = vi.fn().mockImplementation((input: string | URL | Request) => {
+      const targetUrl = typeof input === 'string' || input instanceof URL ? new URL(input.toString()) : new URL(input.url);
+      if (targetUrl.hostname === 'wordfrogwordoftheday.superjeffc.com') {
         return Promise.resolve(new Response(JSON.stringify({ word: 'frog' }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
