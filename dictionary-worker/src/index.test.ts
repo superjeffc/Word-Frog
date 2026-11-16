@@ -2,6 +2,14 @@ import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloud
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
 import worker from './index';
 
+declare global {
+  namespace Cloudflare {
+    interface Env {
+      DICTIONARY_KV: KVNamespace;
+    }
+  }
+}
+
 describe('Dictionary Worker', () => {
   const MOCK_ORIGIN = "https://wordfrog.superjeffc.com";
   const LOCAL_ORIGIN = "http://localhost:3000";

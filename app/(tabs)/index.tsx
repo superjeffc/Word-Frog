@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Crypto from 'expo-crypto';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -430,8 +430,8 @@ export default function App() {
 
   // 1. Setup the Animation Value
   // We start at 0 (the first letter)
-  const frogX = useRef(new Animated.Value(0)).current;
-  const frogY = useRef(new Animated.Value(0)).current;
+  const [frogX] = useState(() => new Animated.Value(0));
+  const [frogY] = useState(() => new Animated.Value(0));
 
   const jumpFrog = () => {
     // Reset Y to 0 just in case
@@ -483,53 +483,6 @@ export default function App() {
   };
 
   const confirmedPrefix = TARGET_WORD ? TARGET_WORD.slice(0, revealedPrefix.length + hintedLettersCount) : revealedPrefix;
-
-  const handleKeyPress = (key: string) => {
-    if (isGameOver) return;
-
-    if (key === 'ENTER') {
-      handleSubmit();
-    } else if (key === '⌫') {
-      setUserInput((prev) => {
-        let current = prev.startsWith(confirmedPrefix) ? prev : confirmedPrefix + prev;
-        if (current.length <= confirmedPrefix.length) {
-          return current;
-        }
-        return current.slice(0, -1);
-      });
-    } else {
-      setUserInput((prev) => {
-        let current = prev.startsWith(confirmedPrefix) ? prev : confirmedPrefix + prev;
-        if (current.length >= TARGET_WORD.length) {
-          return current;
-        }
-        return current + key;
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isGameOver) return;
-      if (document.activeElement?.tagName === 'INPUT') return;
-
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleKeyPress('ENTER');
-      } else if (e.key === 'Backspace') {
-        e.preventDefault();
-        handleKeyPress('⌫');
-      } else if (/^[a-zA-Z]$/.test(e.key)) {
-        e.preventDefault();
-        handleKeyPress(e.key.toUpperCase());
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isGameOver, userInput, revealedPrefix, hintedLettersCount, TARGET_WORD]);
 
   const startLeapFrog = () => {
     const now = new Date(); // Create one single timestamp
@@ -815,7 +768,7 @@ export default function App() {
     }
   };
 
-  const handleSubmit = async () => {
+  async function handleSubmit() {
     if (isGameOver || isValidating) return;
     const effectiveInput = userInput.startsWith(confirmedPrefix) ? userInput : (confirmedPrefix + userInput);
     const guess = effectiveInput.trim().toUpperCase();
@@ -915,6 +868,53 @@ export default function App() {
 
     setMessage(`✅ Nice! Next letter: ${nextLetter}`);
   };
+
+  const handleKeyPress = (key: string) => {
+    if (isGameOver) return;
+
+    if (key === 'ENTER') {
+      handleSubmit();
+    } else if (key === '⌫') {
+      setUserInput((prev) => {
+        let current = prev.startsWith(confirmedPrefix) ? prev : confirmedPrefix + prev;
+        if (current.length <= confirmedPrefix.length) {
+          return current;
+        }
+        return current.slice(0, -1);
+      });
+    } else {
+      setUserInput((prev) => {
+        let current = prev.startsWith(confirmedPrefix) ? prev : confirmedPrefix + prev;
+        if (current.length >= TARGET_WORD.length) {
+          return current;
+        }
+        return current + key;
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isGameOver) return;
+      if (document.activeElement?.tagName === 'INPUT') return;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleKeyPress('ENTER');
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleKeyPress('⌫');
+      } else if (/^[a-zA-Z]$/.test(e.key)) {
+        e.preventDefault();
+        handleKeyPress(e.key.toUpperCase());
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isGameOver, userInput, revealedPrefix, hintedLettersCount, TARGET_WORD]);
 
   const openDefinition = () => {
     const url = `https://www.google.com/search?q=define+${TARGET_WORD.toLowerCase()}`;

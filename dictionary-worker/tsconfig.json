@@ -2,9 +2,12 @@
   "compilerOptions": {
     "target": "es2022",
     "module": "es2022",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
     "lib": ["es2022"],
-    "types": ["@cloudflare/workers-types/2023-07-01", "@cloudflare/vitest-pool-workers"]
-  }
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"]
+  },
+  "include": ["src/**/*.ts"]
 }

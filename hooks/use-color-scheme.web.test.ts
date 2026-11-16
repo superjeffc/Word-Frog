@@ -13,19 +13,19 @@ describe('useColorScheme web hook', () => {
     jest.clearAllMocks();
   });
 
-  it('should initially return light before hydration completes, then update', () => {
+  it('should initially return light before hydration completes, then update', async () => {
     (useRNColorScheme as jest.Mock).mockReturnValue('dark');
 
-    const { result, unmount } = renderHook(() => useColorScheme());
+    const { result, unmount } = await renderHook(() => useColorScheme());
 
     expect(result.current).toBe('dark');
-    unmount();
+    await unmount();
   });
 
-  it('should handle undefined RN color scheme gracefully after hydration', () => {
+  it('should handle undefined RN color scheme gracefully after hydration', async () => {
     (useRNColorScheme as jest.Mock).mockReturnValue(undefined);
 
-    const { result } = renderHook(() => useColorScheme());
+    const { result } = await renderHook(() => useColorScheme());
 
     expect(result.current).toBeUndefined();
   });

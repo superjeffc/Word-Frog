@@ -10,37 +10,37 @@ describe('useThemeColor', () => {
     jest.clearAllMocks();
   });
 
-  it('returns light color from props when theme is light', () => {
+  it('returns light color from props when theme is light', async () => {
     (useColorScheme as jest.Mock).mockReturnValue('light');
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useThemeColor({ light: 'light-color', dark: 'dark-color' }, 'text')
     );
     expect(result.current).toBe('light-color');
   });
 
-  it('returns dark color from props when theme is dark', () => {
+  it('returns dark color from props when theme is dark', async () => {
     (useColorScheme as jest.Mock).mockReturnValue('dark');
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useThemeColor({ light: 'light-color', dark: 'dark-color' }, 'text')
     );
     expect(result.current).toBe('dark-color');
   });
 
-  it('returns theme light color when props are empty and theme is light', () => {
+  it('returns theme light color when props are empty and theme is light', async () => {
     (useColorScheme as jest.Mock).mockReturnValue('light');
-    const { result } = renderHook(() => useThemeColor({}, 'text'));
+    const { result } = await renderHook(() => useThemeColor({}, 'text'));
     expect(result.current).toBe(Colors.light.text);
   });
 
-  it('returns theme dark color when props are empty and theme is dark', () => {
+  it('returns theme dark color when props are empty and theme is dark', async () => {
     (useColorScheme as jest.Mock).mockReturnValue('dark');
-    const { result } = renderHook(() => useThemeColor({}, 'text'));
+    const { result } = await renderHook(() => useThemeColor({}, 'text'));
     expect(result.current).toBe(Colors.dark.text);
   });
 
-  it('defaults to light theme if useColorScheme returns null', () => {
+  it('defaults to light theme if useColorScheme returns null', async () => {
     (useColorScheme as jest.Mock).mockReturnValue(null);
-    const { result } = renderHook(() => useThemeColor({}, 'text'));
+    const { result } = await renderHook(() => useThemeColor({}, 'text'));
     expect(result.current).toBe(Colors.light.text);
   });
 });
