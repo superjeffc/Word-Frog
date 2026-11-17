@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /_sitemap
+Disallow: /modal
+
+Sitemap: https://wordfrog.superjeffc.com/sitemap.xml
