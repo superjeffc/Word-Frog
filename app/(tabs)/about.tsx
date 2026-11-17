@@ -1,3 +1,5 @@
+import { SeoHead } from '@/components/seo-head';
+import { ROUTE_SEO } from '@/constants/seo';
 import React from 'react';
 import {
   Linking,
@@ -24,6 +26,7 @@ export default function AboutScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <SeoHead {...ROUTE_SEO.about} />
 
       {/* Header Section */}
       <View style={styles.headerSection}>

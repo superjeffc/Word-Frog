@@ -1,3 +1,5 @@
+import { SeoHead } from '@/components/seo-head';
+import { ROUTE_SEO } from '@/constants/seo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -173,6 +175,7 @@ const LeaderboardScreen = () => {
 
   return (
     <View style={styles.container}>
+      <SeoHead {...ROUTE_SEO.leaderboard} />
       <View style={styles.header}>
         <Text style={styles.title}>🏆 Leaderboard</Text>
         <TouchableOpacity

@@ -21,8 +21,12 @@ import {
   useWindowDimensions
 } from 'react-native';
 
+import { SeoHead } from '@/components/seo-head';
+import { ROUTE_SEO } from '@/constants/seo';
 import { CURRENT_VERSION } from '../../constants/version';
 import { KEYBOARD_ROWS } from '../../constants/keyboard';
+
+const HOME_SEO = <SeoHead {...ROUTE_SEO.home} />;
 
 const getWordOfTheDay = async () => {
   // Get the user's local date in YYYY-MM-DD format (e.g., "2026-01-17")
@@ -107,97 +111,6 @@ export default function App() {
   const DYNAMIC_TILE_SIZE = Math.min(43, TILE_SPACE);
   const BOX_SIZE = DYNAMIC_TILE_SIZE - 8; // Subtracting the 4px margin from both sides
   const DYNAMIC_FONT_SIZE = BOX_SIZE * 0.6;
-
-  // --- WEB SEO & SCHEMA INJECTION ---
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      document.title = "Word Frog | Daily Word Guessing Game";
-
-      // Meta Tags
-      const metaData = [
-        { name: 'description', content: 'A daily word guessing game that challenges your vocabulary.' },
-        { property: 'og:title', content: 'Word Frog | Daily Word Game' },
-        { property: 'og:description', content: 'A daily word guessing game that challenges your vocabulary.' },
-        { property: 'og:image', content: 'https://wordfrog.superjeffc.com/favicon.ico' },
-        { property: 'og:url', content: 'https://wordfrog.superjeffc.com' },
-        { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
-        { name: 'apple-mobile-web-app-title', content: 'Word Frog' }
-      ];
-
-      metaData.forEach(data => {
-        let tag = document.querySelector(`meta[${data.name ? 'name' : 'property'}="${data.name || data.property}"]`);
-        if (!tag) {
-          tag = document.createElement('meta');
-          if (data.name) tag.setAttribute('name', data.name);
-          if (data.property) tag.setAttribute('property', data.property);
-          document.head.appendChild(tag);
-        }
-        tag.setAttribute('content', data.content);
-      });
-
-      // Link Tags
-      interface LinkTag {
-        rel: string;
-        href: string;
-        type?: string;
-        sizes?: string;
-      }
-
-      const linkTags: LinkTag[] = [
-        { rel: 'icon', type: 'image/png', href: '/favicon-96x96.png', sizes: '96x96' },
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'shortcut icon', href: '/favicon.ico' },
-        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
-        { rel: 'manifest', href: '/site.webmanifest' }
-      ];
-
-      linkTags.forEach(data => {
-        const sizeSelector = data.sizes ? `[sizes="${data.sizes}"]` : '';
-        const selector = `link[rel="${data.rel}"]${sizeSelector}`;
-
-        let tag = document.querySelector(selector) as HTMLLinkElement | null;
-
-        if (!tag) {
-          tag = document.createElement('link');
-          document.head.appendChild(tag);
-        }
-
-        (Object.keys(data) as Array<keyof LinkTag>).forEach(key => {
-          const value = data[key];
-          if (value) {
-            tag?.setAttribute(key, value);
-          }
-        });
-      });
-
-      // JSON-LD Schema
-      const schemaData = {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Word Frog",
-        "operatingSystem": "Web",
-        "applicationCategory": "GameApplication",
-        "genre": "Word Game",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "description": "A daily word guessing game that challenges your vocabulary."
-      };
-
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.text = JSON.stringify(schemaData);
-      document.head.appendChild(script);
-
-      return () => {
-        document.head.removeChild(script);
-      };
-    }
-  }, []);
 
   const notify = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -931,6 +844,7 @@ export default function App() {
   if (!appIsReady) {
     return (
       <View style={styles.loadingContainer}>
+        {HOME_SEO}
         <ActivityIndicator size="large" color="#2e7d32" />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
@@ -939,6 +853,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
+      {HOME_SEO}
       <StatusBar style="dark" />
       {savedName ? (
         <View style={styles.welcomeContainer}>

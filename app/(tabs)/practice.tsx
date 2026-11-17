@@ -18,7 +18,11 @@ import {
   View,
   useWindowDimensions
 } from 'react-native';
+import { SeoHead } from '@/components/seo-head';
+import { ROUTE_SEO } from '@/constants/seo';
 import { KEYBOARD_ROWS } from '../../constants/keyboard';
+
+const PRACTICE_SEO = <SeoHead {...ROUTE_SEO.practice} />;
 
 export const getRandomWord = async () => {
   const API_URL = 'https://word-frog-dictionary-api.superjeffc.workers.dev/random';
@@ -116,36 +120,6 @@ export default function PracticeScreen() {
   const DYNAMIC_TILE_SIZE = Math.min(43, TILE_SPACE);
   const BOX_SIZE = DYNAMIC_TILE_SIZE - 8;
   const DYNAMIC_FONT_SIZE = BOX_SIZE * 0.6;
-
-  // --- WEB SEO & SCHEMA INJECTION ---
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      document.title = "Word Frog | Practice Mode";
-
-      const metaData = [
-        { name: 'description', content: 'Practice Word Frog with completely random words to improve your vocabulary!' },
-        { property: 'og:title', content: 'Word Frog | Practice Mode' },
-        { property: 'og:description', content: 'Practice Word Frog with completely random words to improve your vocabulary.' },
-        { property: 'og:image', content: 'https://wordfrog.superjeffc.com/favicon.ico' },
-        { property: 'og:url', content: 'https://wordfrog.superjeffc.com/practice' },
-        { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
-        { name: 'apple-mobile-web-app-title', content: 'Word Frog Practice' }
-      ];
-
-      metaData.forEach(data => {
-        let tag = document.querySelector(`meta[${data.name ? 'name' : 'property'}="${data.name || data.property}"]`);
-        if (!tag) {
-          tag = document.createElement('meta');
-          if (data.name) tag.setAttribute('name', data.name);
-          if (data.property) tag.setAttribute('property', data.property);
-          document.head.appendChild(tag);
-        }
-        tag.setAttribute('content', data.content);
-      });
-    }
-  }, []);
 
   const notify = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -563,6 +537,7 @@ export default function PracticeScreen() {
   if (!appIsReady) {
     return (
       <View style={styles.loadingContainer}>
+        {PRACTICE_SEO}
         <ActivityIndicator size="large" color="#2e7d32" />
         <Text style={styles.loadingText}>Loading random word...</Text>
       </View>
@@ -571,6 +546,7 @@ export default function PracticeScreen() {
 
   return (
     <View style={styles.container}>
+      {PRACTICE_SEO}
       <StatusBar style="dark" />
       {savedName ? (
         <View style={styles.welcomeContainer}>
